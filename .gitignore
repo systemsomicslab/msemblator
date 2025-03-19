@@ -1,0 +1,12 @@
+# キャッシュフォルダ
+__pycache__/
+
+# データフォルダ（必要ならコメントアウト）
+buddy/
+data/
+machine/
+metfrag/
+model/
+msfinder/
+save_folder/
+sirius4/
