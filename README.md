@@ -81,36 +81,66 @@ cd msemblator
 pip install -r requirements.txt
 ```
 
-### 3. External Tool Placement
-Please download the required external tools and place them in the following recommended structure:
+### 3. External Tool Placement  
+Please download the required external tools and place them in the following recommended structure:  
+
+#### Project structure  
+```text
+msemblator/
+├─ buddy/                      # Output folder for msbuddy
+├─ data/                       # example of input file
+├─ structure_scoring_model/    # Structure scoring models
+├─ metfrag/                    # MetFrag integration
+│   ├─ example_parameter.txt     # Configuration file for MetFrag
+│   ├─ library_psv_v2.txt        # Custom database for MetFrag
+│   └─ MetFragCommandLine-2.5.0.jar  # MetFrag CLI JAR
+├─ formula_scoring_model/      # Formula scoring models
+├─ msfinder/                   # MS-FINDER integration
+│   ├─ MSFINDER ver 3.61/        # MS-FINDER executable and resources
+│   ├─ msp/                      # Input MSP files for MS-FINDER
+│   ├─ output/                   # MS-FINDER output (structures)
+│   └─ output_formula/          # MS-FINDER output (formulas only)
+├─ save_folder/                # Intermediate files during execution
+│   ├─ buddy_mgf/               # MGF files for BUDDY input
+│   ├─ formula_fixed_msp/       # MSP files with updated formula information
+│   ├─ msfinder_msp/            # Reformatted MSP files for MS-FINDER
+│   └─ sirius_ms/               # Reformatted files for SIRIUS input
+├─ sirius4/                    
+│   ├─ app/
+│   ├─ database/
+│   ├─ ExplorerLicTester/
+│   ├─ ms/
+│   ├─ output/
+│   ├─ ... (other resources)
+│   ├─ sirius.exe               # Main SIRIUS executable (CLI)
+│   └─ sirius-gui.exe           
+└─ __pycache__/                # Python cache (auto-generated)
 ```
-<pre><code>```text D:. ├─ buddy/ # Output folder for msbuddy ├─ data/ # Input files and example datasets ├─ machine/ # Structure scoring models ├─ metfrag/ # MetFrag integration │ ├─ example_parameter.txt # Configuration file for MetFrag │ ├─ library_psv_v2.txt # Custom database for MetFrag │ └─ MetFragCommandLine-2.5.0.jar # MetFrag CLI JAR ├─ model/ # Formula scoring models ├─ msfinder/ # MS-FINDER integration │ ├─ MSFINDER ver 3.61/ # MS-FINDER executable and resources │ ├─ msp/ # Input MSP files for MS-FINDER │ ├─ output/ # MS-FINDER output (structures) │ └─ output_formula/ # MS-FINDER output (formulas only) ├─ save_folder/ # Intermediate files during execution │ ├─ buddy_mgf/ # MGF files for BUDDY input │ ├─ formula_fixed_msp/ # MSP files with updated formula information │ ├─ msfinder_msp/ # Reformatted MSP files for MS-FINDER │ └─ sirius_ms/ # Reformatted files for SIRIUS input ├─ sirius4/ # SIRIUS v4+ installation folder │ ├─ app/ │ ├─ database/ │ ├─ ExplorerLicTester/ │ ├─ ms/ │ ├─ output/ │ ├─ ... (other resources) │ ├─ sirius.exe # Main SIRIUS executable (CLI) │ └─ sirius-gui.exe # GUI version of SIRIUS (optional) └─ __pycache__/ # Python cache (auto-generated) ``` </code></pre>
-```
 
 
-**・MS-DIAL(for MSP generation)**
-Download:[MS-DIAL5](https://systemsomicslab.github.io/compms/msdial/main.html)
-Export your data as .msp using MS-DIAL 5.
-These MSP files will be used as input for this tool.
+**・MS-DIAL(for MSP generation)**  
+Download:[MS-DIAL5](https://systemsomicslab.github.io/compms/msdial/main.html)  
+Export your data as .msp using MS-DIAL 5.  
+These MSP files will be used as input for this tool.  
 
-**・ SIRIUS (required for formula and structure elucidation)**
-Download:[SIRIUS 5.8.6](https://github.com/sirius-ms/sirius/releases/tag/v5.8.6)
-You will need:
-・ The SIRIUS executable
-・ A SIRIUS web service account
+**・ SIRIUS (required for formula and structure elucidation)**  
+Download:[SIRIUS 5.8.6](https://github.com/sirius-ms/sirius/releases/tag/v5.8.6)  
+You will need:  
+・ The SIRIUS executable  
+・ A SIRIUS web service account  
 
-**・ MS-FINDER (required for formula and structure elucidation)**
-Download:[MSFINDER3.61](https://github.com/systemsomicslab/MsdialWorkbench/releases/tag/MSFINDER-v3.61)
+**・ MS-FINDER (required for formula and structure elucidation)**    
+Download:[MSFINDER3.61](https://github.com/systemsomicslab/MsdialWorkbench/releases/tag/MSFINDER-v3.61)  
 
-**・ MetFrag (required for structure elucidation)**
-Download:[MetFragCommandLine-2.5.0.jar](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)
+**・ MetFrag (required for structure elucidation)**  
+Download:[MetFragCommandLine-2.5.0.jar](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
 
-**・ Required compound library and scoring model**
-Download:[structure_scoring_model](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)
-Download:[formula_scoring_model](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)
-Download:[sirius_database](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)
-Download:[msfinder_database](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)
-Download:[MetFrag_database](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)
+**・ Required compound library and scoring model**  
+Download:[structure_scoring_model](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
+Download:[formula_scoring_model](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
+Download:[sirius_database](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
+Download:[msfinder_database](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
+Download:[MetFrag_database](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
 
 
 
