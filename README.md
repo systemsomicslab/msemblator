@@ -83,8 +83,9 @@ pip install -r requirements.txt
 
 ### 3. External Tool Placement
 Please download the required external tools and place them in the following recommended structure:
+```
 <pre><code>```text D:. ├─ buddy/ # Output folder for msbuddy ├─ data/ # Input files and example datasets ├─ machine/ # Structure scoring models ├─ metfrag/ # MetFrag integration │ ├─ example_parameter.txt # Configuration file for MetFrag │ ├─ library_psv_v2.txt # Custom database for MetFrag │ └─ MetFragCommandLine-2.5.0.jar # MetFrag CLI JAR ├─ model/ # Formula scoring models ├─ msfinder/ # MS-FINDER integration │ ├─ MSFINDER ver 3.61/ # MS-FINDER executable and resources │ ├─ msp/ # Input MSP files for MS-FINDER │ ├─ output/ # MS-FINDER output (structures) │ └─ output_formula/ # MS-FINDER output (formulas only) ├─ save_folder/ # Intermediate files during execution │ ├─ buddy_mgf/ # MGF files for BUDDY input │ ├─ formula_fixed_msp/ # MSP files with updated formula information │ ├─ msfinder_msp/ # Reformatted MSP files for MS-FINDER │ └─ sirius_ms/ # Reformatted files for SIRIUS input ├─ sirius4/ # SIRIUS v4+ installation folder │ ├─ app/ │ ├─ database/ │ ├─ ExplorerLicTester/ │ ├─ ms/ │ ├─ output/ │ ├─ ... (other resources) │ ├─ sirius.exe # Main SIRIUS executable (CLI) │ └─ sirius-gui.exe # GUI version of SIRIUS (optional) └─ __pycache__/ # Python cache (auto-generated) ``` </code></pre>
-
+```
 
 
 **・MS-DIAL(for MSP generation)**
