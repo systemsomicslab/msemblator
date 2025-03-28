@@ -107,7 +107,7 @@ msemblator/
 │   └─ sirius_ms/               # Reformatted files for SIRIUS input
 ├─ sirius4/                    
 │   ├─ app/
-│   ├─ database/
+│   ├─ database/               # SIRIUS structure database 
 │   ├─ ExplorerLicTester/
 │   ├─ ms/
 │   ├─ output/
@@ -136,11 +136,11 @@ Download:[MSFINDER3.61](https://github.com/systemsomicslab/MsdialWorkbench/relea
 Download:[MetFragCommandLine-2.5.0.jar](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
 
 **・ Required compound library and scoring model**  
-Download:[structure_scoring_model](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
-Download:[formula_scoring_model](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
-Download:[sirius_database](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
-Download:[msfinder_database](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
-Download:[MetFrag_database](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
+Download:[structure_scoring_model]()  
+Download:[formula_scoring_model]()  
+Download:[sirius_database]()  
+Download:[msfinder_database]()  
+Download:[MetFrag_database]()  
 
 
 
