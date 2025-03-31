@@ -1,0 +1,96 @@
+#Formula finder parameters
+LewisAndSeniorCheck=True
+Ms1Tolerance=10
+IsotopicAbundanceTolerance=20
+MassToleranceType=ppm
+CommonRange=TRUE
+ExtendedRange=FALSE
+ExtremeRange=FALSE
+ElementProbabilityCheck=False
+Ocheck=True
+Ncheck=True
+Pcheck=True
+Scheck=True
+Fcheck=True
+ClCheck=True
+BrCheck=True
+Icheck=True
+SiCheck=False
+IsTmsMeoxDerivative=False
+MinimumTmsCount=0
+MinimumMeoxCount=0
+FormulaMaximumReportNumber=10
+
+#Structure finder parameters
+TreeDepth=2
+Ms2Tolerance=0.05
+RelativeAbundanceCutOff=1
+StructureMaximumReportNumber=0
+IsUseEiFragmentDB=False
+
+#Data source
+MinesNeverUse=Ture
+MinesOnlyUseForNecessary=False
+MinesAllways=False
+PubChemNeverUse=True
+PubChemOnlyUseForNecessary=False
+PubChemAllways=False
+HMDB=False
+YMDB=False
+PubChem=False
+SMPDB=False
+UNPD=False
+ChEBI=False
+PlantCyc=False
+KNApSAcK=False
+BMDB=False
+FooDB=False
+ECMDB=False
+DrugBank=False
+T3DB=False
+STOFF=False
+NANPDB=False
+COCONUT=False
+IsUserDefinedDB=False
+UserDefinedDbFilePath=D:\python\msemblator2\msemblator\msfinder\coconutandBLEXP.txt
+
+#Spectral database search
+IsRunSpectralDbSearch=False
+IsRunInSilicoFragmenterSearch=True
+IsPrecursorOrientedSearch=True
+IsUseInternalExperimentalSpectralDb=False
+IsUseInSilicoSpectralDbForLipids=False
+IsUseUserDefinedSpectralDb=True
+UserDefinedSpectralDbFilePath=C:\Users\Hiroshi Tsugawa\Desktop\MsfinderConsoleApp test\MSMS-AllPublic-Curated-Neg-MfKit.msp
+SolventType=CH3COONH4
+MassRangeMin=50
+MassRangeMax=2000
+ScoreCutOffForSpectralMatch=80
+
+#Batch job
+AllProcess=False
+FormulaFinder=True
+StructureFinder=False
+TryTopNMolecularFormulaSearch=5
+
+#FSEA parameter
+FseaRelativeAbundanceCutOff=5
+FseanonsignificantDef=OntologySpace
+FseaPvalueCutOff=1
+
+#Msfinder molecular networking (mmn)
+IsMmnLocalCytoscape=False
+IsMmnMsdialOutput=False
+IsMmnFormulaBioreaction=False
+IsMmnRetentionRestrictionUsed=False
+IsMmnOntologySimilarityUsed=False
+MmnMassTolerance=0.025
+MmnRelativeCutoff=1
+MmnMassSimilarityCutOff=75
+MmnRtTolerance=100
+MmnOntologySimilarityCutOff=90
+MmnOutputFolderPath=
+
+#Time out parameter
+FormulaPredictionTimeOut=20
+StructurePredictionTimeOut=0

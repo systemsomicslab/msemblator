@@ -72,69 +72,62 @@ def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
 def convert_name_to_peakid(msp_data):
     """
     Convert the NAME field to PEAKID for each spectrum block in the MSP data.
-    If a COMMENT line contains '|PEAKID=...', the function extracts the PEAKID,
-    replaces the NAME with the PEAKID, and appends the original NAME as an ORIGNAME tag
-    in the COMMENT line.
-
-    Parameters:
-        msp_data (str): The original MSP data as a string.
-
-    Returns:
-        tuple:
-            - str: The updated MSP data with NAME replaced by PEAKID.
-            - pd.DataFrame: A DataFrame containing the original and updated NAMEs for each spectrum block.
-              The DataFrame has the columns 'Original_NAME' and 'Updated_NAME'.
+    Ensures uniqueness of PEAKID by appending suffixes if needed.
     """
-    # Split the MSP data into blocks (each separated by one or more blank lines)
     blocks = re.split(r'\n\s*\n', msp_data.strip())
     updated_blocks = []
-    records = []  # For storing the NAME pairs for each block
-    
+    records = []
+    peakid_counts = {}  # Track occurrence counts of each PEAKID
+
     for block in blocks:
         lines = block.splitlines()
         original_name = None
         new_name = None
         new_lines = []
-        
+
         for line in lines:
-            # Process the NAME line.
             if line.lower().startswith("name:"):
                 original_name = line.split(":", 1)[1].strip()
-                new_name = original_name  # default to original
+                new_name = original_name
                 new_lines.append(line)
                 continue
-            
-            # Process the COMMENT line.
+
             if line.lower().startswith("comment:"):
                 comment_line = line
                 if "|PEAKID=" in comment_line:
-                    # Extract PEAKID using regex.
                     match = re.search(r'\|PEAKID=([^|]+)\|', comment_line)
                     if match:
-                        peakid = match.group(1).strip()
-                        new_name = peakid
-                        # Append ORIGNAME tag if not already present.
+                        base_peakid = match.group(1).strip()
+
+                        # Ensure PEAKID uniqueness
+                        count = peakid_counts.get(base_peakid, 0)
+                        if count == 0:
+                            new_name = base_peakid
+                        else:
+                            new_name = f"{base_peakid}_{count}"
+                        peakid_counts[base_peakid] = count + 1
+
+                        # Append ORIGNAME if missing
                         if "|ORIGNAME=" not in comment_line and original_name:
                             comment_line += f"|ORIGNAME={original_name}|"
                 new_lines.append(comment_line)
                 continue
-            
+
             new_lines.append(line)
-        
-        # Replace the NAME line with the new_name.
+
+        # Replace NAME line
         if original_name is not None and new_name is not None:
             for i, line in enumerate(new_lines):
                 if line.lower().startswith("name:"):
                     new_lines[i] = f"NAME: {new_name}"
                     break
-        
-        updated_block = "\n".join(new_lines)
-        updated_blocks.append(updated_block)
+
+        updated_blocks.append("\n".join(new_lines))
         records.append({
             "Original_NAME": original_name,
             "Updated_NAME": new_name
         })
-    
+
     updated_msp_data = "\n\n".join(updated_blocks)
     df = pd.DataFrame(records)
 

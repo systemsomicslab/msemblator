@@ -66,78 +66,72 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
     return df_original
 
 
-
-import pandas as pd
-
 def aggregate_probability_with_rank(df, top_n=3):
     """
     Aggregates `confidence_score` for each `Canonical_SMILES` within each `filename`,
     selects the top `top_n` `Canonical_SMILES` with the highest aggregated score per `filename`,
-    and retrieves the corresponding score, tool, and rank in a new DataFrame.
+    and retrieves the corresponding original tool ranks.
 
     Parameters:
-        df (pd.DataFrame): The original DataFrame.
-        top_n (int): Number of top-ranked `Canonical_SMILES` to include per `filename`.
+        df (pd.DataFrame): Input DataFrame, must include original tool ranks like `rank_metfrag`, etc.
+        top_n (int): Number of top-ranked SMILES to include per filename (based on aggregated score).
 
     Returns:
-        pd.DataFrame: A new DataFrame containing the aggregated results.
+        pd.DataFrame: Summary DataFrame with filename, adduct, score, SMILES, and original tool ranks.
     """
-    # Aggregate `confidence_score` for each `Canonical_SMILES` within each `filename`
+    # Step 1: Aggregate confidence_score by filename + Canonical_SMILES
     df_filtered = df.groupby(["filename", "Canonical_SMILES"], as_index=False).agg(
         confidence_score_sum=("confidence_score", "sum")
     )
-
-    # **NaN check**: Ensure there are no NaN values in confidence_score_sum
     df_filtered["confidence_score_sum"] = df_filtered["confidence_score_sum"].fillna(0)
 
-    # **Create rank column**
-    df_filtered["rank"] = df_filtered.groupby("filename")["confidence_score_sum"].rank(
-        method="first", ascending=False
-    ).astype(int)  # **Convert to integer type**
+    # Step 2: Assign rank based on aggregated score within each filename
+    df_filtered["rank"] = df_filtered.groupby("filename")["confidence_score_sum"] \
+                                     .rank(method="first", ascending=False).astype(int)
 
-    # **Debugging: Check if rank column exists**
-    print("df_filtered.head():")
-    print(df_filtered.head())
-
-    # Select the top `top_n` ranked Canonical_SMILES per filename
+    # Step 3: Keep only top-N entries
     df_top_smiles = df_filtered[df_filtered["rank"] <= top_n]
 
-    # Merge to retrieve additional details from the original DataFrame
+    # Step 4: Merge original DataFrame with top-ranked SMILES (do not change this line)
     df_max_info = df.merge(df_top_smiles, on=["filename", "Canonical_SMILES"], how="inner")
 
-    # **Check if rank column is retained after merging**
-    print("df_max_info after merge:")
-    print(df_max_info.head())
-    print("Columns in df_max_info:", df_max_info.columns)
-
-    # **If rank is missing after merging, re-merge**
-    if "rank" not in df_max_info.columns:
-        df_max_info = df_max_info.merge(df_top_smiles[["filename", "Canonical_SMILES", "rank"]], 
-                                        on=["filename", "Canonical_SMILES"], how="left")
-
-    # **Ensure rank column remains integer type**
-    df_max_info["rank"] = df_max_info["rank"].astype(int)
-
-    # Convert 'filename' and 'adduct' columns to string
+    # Step 5: Ensure correct data types
     df_max_info["filename"] = df_max_info["filename"].astype(str)
     df_max_info["adduct"] = df_max_info["adduct"].astype(str)
 
-    # Generate a list of tools that reported the selected `Canonical_SMILES` along with their ranks
-    df_max_info["Tool_Rank"] = df_max_info.apply(lambda row: 
-        [f"MetFrag(rank={row['rank']})" if row.get("tool_name_metfrag", 0) == 1 else None,
-         f"MS-FINDER(rank={row['rank']})" if row.get("tool_name_msfinder", 0) == 1 else None,
-         f"SIRIUS(rank={row['rank']})" if row.get("tool_name_sirius", 0) == 1 else None], axis=1)
+    # Step 6: Restore rank if missing after merge
+    if "rank" not in df_max_info.columns:
+        df_max_info = df_max_info.merge(
+            df_top_smiles[["filename", "Canonical_SMILES", "rank"]],
+            on=["filename", "Canonical_SMILES"],
+            how="left"
+        )
+    df_max_info["rank"] = df_max_info["rank"].astype(int)
 
-    # Flatten the list and remove None values
-    df_max_info["Used_Tool"] = df_max_info["Tool_Rank"].apply(lambda x: ", ".join(filter(None, x)))
+    # Step 7: Create Tool_Rank using original tool-specific rank values (do not change logic here)
+    def extract_tool_rank(row):
+        ranks = []
+        if row.get("tool_name_metfrag", 0) == 1 and pd.notnull(row.get("rank")):
+            ranks.append(f"MetFrag(rank={int(row['rank'])})")
+        if row.get("tool_name_msfinder", 0) == 1 and pd.notnull(row.get("rank")):
+            ranks.append(f"MS-FINDER(rank={int(row['rank'])})")
+        if row.get("tool_name_sirius", 0) == 1 and pd.notnull(row.get("rank")):
+            ranks.append(f"SIRIUS(rank={int(row['rank'])})")
+        return ", ".join(ranks)
 
-    # Keep only relevant columns
-    df_summary = df_max_info.groupby(["filename", "rank"]).agg(
+
+    df_max_info["Tool_Rank"] = df_max_info.apply(extract_tool_rank, axis=1)
+    df_max_info["Used_Tool"] = df_max_info["Tool_Rank"]
+
+    # Step 8: Group and summarize final output
+    df_summary = df_max_info.groupby(["filename", "Canonical_SMILES", "rank"]).agg(
         adduct=("adduct", "first"),
         confidence_score_sum=("confidence_score_sum", "first"),
-        Canonical_SMILES=("Canonical_SMILES", "first"),
-        Used_Tool=("Used_Tool", lambda x: ", ".join(set(x)))  # Combine tool-rank pairs without duplication
+        Used_Tool=("Used_Tool", lambda x: ", ".join(set(x)))
     ).reset_index()
 
     return df_summary
+
+
+
 

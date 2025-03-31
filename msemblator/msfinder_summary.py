@@ -13,10 +13,11 @@ def process_msfinder_summary(msfinder_file_path, machine_dir, name_adduct_df, su
     msfinder_output_combined = pd.concat([pd.read_table(file) for file in file_paths], ignore_index=True)
     msfinder_output_combined['File name'] = msfinder_output_combined['File name'].astype(str)
     msfinder_output_combined["name"] = msfinder_output_combined['File name'].str.split('.').str[0].str.split('_').str[-1]
+    msfinder_output_combined["Rank"] = msfinder_output_combined.groupby("File name").cumcount() + 1
     
     score_column = "Score" if "Score" in msfinder_output_combined.columns else "Formula score"
     msfinder_output_combined["score_diff"] = 0 
-    msfinder_output_combined["Rank"] = msfinder_output_combined["Rank"].astype(int)
+
     
     mask = (msfinder_output_combined["Rank"] + 1 == msfinder_output_combined["Rank"].shift(-1).fillna(0).astype(int))
     msfinder_output_combined.loc[mask, "score_diff"] = (

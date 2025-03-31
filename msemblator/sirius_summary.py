@@ -47,7 +47,7 @@ def process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_d
     score_pipeline = joblib.load(sirius_score_pipeline_path)
     SD_pipeline = joblib.load(sirius_SD_pipeline_path)
     
-    filtered_df = conbine_data[conbine_data["formulaRank"] <= 3].copy()
+    filtered_df = conbine_data.groupby('filename').head(3).copy()
     filtered_df["Score_NZ"] = score_pipeline.transform(filtered_df[[score_column]])
     filtered_df["Score_NZ_diff"] = SD_pipeline.transform(filtered_df[["score_diff"]])
     filtered_df.rename(columns={"molecularFormula": "formula"}, inplace=True)

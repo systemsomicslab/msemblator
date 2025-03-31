@@ -4,9 +4,13 @@ __pycache__/
 # データフォルダ（必要ならコメントアウト）
 buddy/
 data/
-machine/
-metfrag/
-model/
-msfinder/
+demo_data/
+structure_scoring_model/
+metfrag/library_psv_v2.txt
+metfrag/MetFragCommandLine-2.5.0.jar
+formula_scoring_model/
+msfinder/MSFINDER ver 3.60/
+msfinder/MSFINDER ver 3.61/
+msfinder/coconutandBLEXP.txt
 save_folder/
 sirius4/

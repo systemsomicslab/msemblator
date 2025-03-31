@@ -1,0 +1,44 @@
+#
+# data file containing mz intensity peak pairs (one per line)
+#
+PeakListPath = CASMI_compound_1.txt
+
+#
+# database parameters -> how to retrieve candidates
+# 
+#
+MetFragDatabaseType = LocalPSV
+LocalDatabasePath = library_psv_v2.txt
+NeutralPrecursorMolecularFormula = C25H38O9
+NeutralPrecursorMass = 482.251585
+#IonizedPrecursorMass = 349.93356
+
+#
+# peak matching parameters
+#
+FragmentPeakMatchAbsoluteMassDeviation = 0.001
+FragmentPeakMatchRelativeMassDeviation = 5
+PrecursorIonMode = 1
+IsPositiveIonMode = True
+
+#
+# scoring parameters
+#
+MetFragScoreTypes = FragmenterScore
+MetFragScoreWeights = 1.0
+
+#
+# output
+# SDF, XLS, CSV, ExtendedXLS, ExtendedFragmentsXLS
+#
+MetFragCandidateWriter = XLS
+SampleName = CASMI_compound_1
+ResultsPath = .
+
+#
+# following parameteres can be kept as they are
+#
+MaximumTreeDepth = 2
+MetFragPreProcessingCandidateFilter = UnconnectedCompoundFilter
+MetFragPostProcessingCandidateFilter = InChIKeyFilter
+# NumberThreads = 1

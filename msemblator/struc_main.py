@@ -13,15 +13,16 @@ from sirius_struc_cmd import sirius_login, run_sirius_struc
 from creating_struc_summary import struc_summary
 from struc_utility import clear_folder, clear_folder_except, save_file, generate_unique_filename
 from struc_score_normalization import ClippingTransformer
-# Clear required folders
 
+# Clear required folders
 def structure_elucidation(input_msp, summary_output_dir, username, password, msfinder_method_file, name_df):
     # Set up logging configuration.
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     
     # Define directories and paths.
     current_dir = os.path.abspath(os.path.dirname(__file__))
-    msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.60")
+    # msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.60")
+    msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.61")
     msfinder_folder = os.path.join(current_dir, "msfinder", "output")
     library_path = os.path.join(current_dir, "msfinder", "coconutandBLEXP.txt")
     method_path = os.path.join(current_dir, "msfinder", msfinder_method_file)
@@ -33,7 +34,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     sirius_inputdir = os.path.join(ms_dir, "converted_ms.ms")
     sirius_path = os.path.join(sirius_directory, "sirius.exe")
     structure_search_db = os.path.join(sirius_directory, "database")
-    machine_dir = os.path.join(current_dir, "machine")
+    machine_dir = os.path.join(current_dir, "structure_scoring_model")
 
     # Clear required folders.
     metfrag_exclude_items = ["example_paramater.txt", "library_psv_v2.txt", "MetFragCommandLine-2.5.0.jar"]
@@ -41,7 +42,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     for folder in [msp_folder, ms_dir, msfinder_folder, sirius_outputdir]:
         clear_folder(folder)
 
-    # ------------------ SIRIUS Processing ------------------
+    # SIRIUS Processing
     sirius_start_time = time.time()
     try:
         logging.info("Starting SIRIUS processing...")
@@ -54,7 +55,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     sirius_end_time = time.time()
     logging.info(f"SIRIUS processing time: {sirius_end_time - sirius_start_time:.2f} seconds")
     
-    # ------------------ MetFrag Processing ------------------
+    # MetFrag Processing
     metfrag_start_time = time.time()
     try:
         logging.info("Starting MetFrag processing...")
@@ -70,7 +71,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     metfrag_end_time = time.time()
     logging.info(f"MetFrag processing time: {metfrag_end_time - metfrag_start_time:.2f} seconds")
     
-    # ------------------ MS-FINDER Processing ------------------
+    # MS-FINDER Processing 
     msfinder_start_time = time.time()
     try:
         logging.info("Starting MSFinder processing...")
@@ -83,7 +84,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     msfinder_end_time = time.time()
     logging.info(f"MSFinder processing time: {msfinder_end_time - msfinder_start_time:.2f} seconds")
     
-    # ------------------ Summary Generation ------------------
+    # Summary Generation
     summary_start_time = time.time()
     try:
         logging.info("Generating summary...")
@@ -96,7 +97,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
         
         summary_smiles_df = pd.merge(name_df, summary_smiles_df, left_on = "Updated_NAME", right_on = "filename")
         summary_smiles_df.drop(columns=["Updated_NAME", "filename"], inplace=True)
-        summary_smiles_df.rename(columns={"Original_NAME":"filename"},inplace=True)
+        summary_smiles_df.rename(columns={"Original_NAME":"filename","Canonical_SMILES":"Top_score_Canonical_SMILES"},inplace=True)
 
         result_score_file = generate_unique_filename(summary_output_dir, "structure_score.csv")
         summary_smiles_file = generate_unique_filename(summary_output_dir, "structure_summary.csv")
