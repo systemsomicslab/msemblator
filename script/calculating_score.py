@@ -60,64 +60,63 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
 
 def aggregate_probability_with_rank_top3(df, top_n=3):
     """
-    Aggregates `confidence_score` for each `Canonical_SMILES` within each `filename`,
-    selects the top `top_n` `Canonical_SMILES` with the highest aggregated score per `filename`,
-    and retrieves the corresponding score, tool, and rank in a new DataFrame.
+    Aggregates `confidence_score` per `formula` within each `filename`,
+    selects top-N formulas, and shows each tool's original rank.
 
     Parameters:
-        df (pd.DataFrame): The original DataFrame.
-        top_n (int): Number of top-ranked `Canonical_SMILES` to include per `filename`.
+        df (pd.DataFrame): Input data with tool_name_* and rank columns.
+        top_n (int): Top N entries to keep.
 
     Returns:
-        pd.DataFrame: A new DataFrame containing the aggregated results.
+        pd.DataFrame: Summary with original tool ranks.
     """
-    # Aggregate `confidence_score` for each `Canonical_SMILES` within each `filename`
+    # Aggregate confidence_score
     df_filtered = df.groupby(["filename", "formula"], as_index=False).agg(
         confidence_score_sum=("confidence_score", "sum")
     )
-
-    # Check for NaN: fill NaN values in confidence_score_sum with 0
     df_filtered["confidence_score_sum"] = df_filtered["confidence_score_sum"].fillna(0)
 
-    # Create a rank column based on aggregated confidence_score per filename
-    df_filtered["rank"] = df_filtered.groupby("filename")["confidence_score_sum"].rank(
-        method="first", ascending=False
-    ).astype(int)  
+    # Add rank based on aggregated score
+    df_filtered["rank"] = df_filtered.groupby("filename")["confidence_score_sum"] \
+                                     .rank(method="first", ascending=False).astype(int)
 
-    # Debug: print the head of df_filtered to verify rank column
-    print("df_filtered.head():")
-    print(df_filtered.head())
+    # Keep top-N
+    df_top = df_filtered[df_filtered["rank"] <= top_n]
 
-    # Select the top 'top_n' entries based on rank
-    df_top_smiles = df_filtered[df_filtered["rank"] <= top_n]
+    # Merge with original data
+    df_max_info = df.merge(df_top, on=["filename", "formula"], how="inner")
 
-    # Merge to retrieve additional details from the original DataFrame
-    df_max_info = df.merge(df_top_smiles, on=["filename", "formula"], how="inner")
-
-    # After merge, check if the rank column still exists
-    print("df_max_info after merge:")
-    print(df_max_info.head())
-    print("Columns in df_max_info:", df_max_info.columns)
-
-    # If the rank column is missing, perform a re-merge to add it back
+    # Recover rank if needed
     if "rank" not in df_max_info.columns:
-        df_max_info = df_max_info.merge(df_top_smiles[["filename", "formula", "rank"]], on=["filename", "formula"], how="left")
+        df_max_info = df_max_info.merge(
+            df_top[["filename", "formula", "rank"]],
+            on=["filename", "formula"],
+            how="left"
+        )
+
     df_max_info["rank"] = df_max_info["rank"].astype(int)
     df_max_info["filename"] = df_max_info["filename"].astype(str)
     df_max_info["adduct"] = df_max_info["adduct"].astype(str)
 
-    df_max_info["Tool_Rank"] = df_max_info.apply(lambda row: 
-        [f"msbuddy(rank={row['rank']})" if row.get("tool_name_buddy", 0) == 1 else None,
-         f"MS-FINDER(rank={row['rank']})" if row.get("tool_name_msfinder", 0) == 1 else None,
-         f"SIRIUS(rank={row['rank']})" if row.get("tool_name_sirius", 0) == 1 else None], axis=1)
 
-    df_max_info["Used_Tool"] = df_max_info["Tool_Rank"].apply(lambda x: ", ".join(filter(None, x)))
+    def extract_tool_rank(row):
+        ranks = []
+        if row.get("tool_name_buddy", 0) == 1 and pd.notnull(row.get("rank")):
+            ranks.append(f"msbuddy(rank={int(row['rank'])})")
+        if row.get("tool_name_msfinder", 0) == 1 and pd.notnull(row.get("rank")):
+            ranks.append(f"MS-FINDER(rank={int(row['rank'])})")
+        if row.get("tool_name_sirius", 0) == 1 and pd.notnull(row.get("rank")):
+            ranks.append(f"SIRIUS(rank={int(row['rank'])})")
+        return ", ".join(ranks)
 
-    df_summary = df_max_info.groupby(["filename", "rank"]).agg(
+    df_max_info["Tool_Rank"] = df_max_info.apply(extract_tool_rank, axis=1)
+    df_max_info["Used_Tool"] = df_max_info["Tool_Rank"]
+
+    # Summary table
+    df_summary = df_max_info.groupby(["filename", "formula", "rank"]).agg(
         adduct=("adduct", "first"),
         confidence_score_sum=("confidence_score_sum", "first"),
-        formula=("formula", "first"),
-        Used_Tool=("Used_Tool", lambda x: ", ".join(set(x)))  
+        Used_Tool=("Used_Tool", lambda x: ", ".join(set(x)))
     ).reset_index()
 
     return df_summary

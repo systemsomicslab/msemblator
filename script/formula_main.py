@@ -28,9 +28,10 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
     msfinder_folder = os.path.join(current_dir, "msfinder", "output")
     buddy_folder = os.path.join(current_dir, "buddy")
     sirius_folder = os.path.join(current_dir, "sirius4", "output")
-    msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.60")
+    # msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.60")
+    msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.61")
     msfinder_method_path = os.path.join(current_dir, "msfinder", "MsfinderConsoleApp_Param_formula.txt")
-    model_dir = os.path.join(current_dir, "model")
+    model_dir = os.path.join(current_dir, "formula_scoring_model")
     sirius_path = os.path.join(current_dir, "sirius4", "sirius.exe")
     msfinder_file_path = os.path.join(current_dir, "msfinder", "output", "Formula*.txt")
 
@@ -105,8 +106,7 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
     formula_fix = summary_output
     summary_output = pd.merge(name_df, summary_output, left_on = "Updated_NAME", right_on = "filename")
     summary_output.drop(columns=["Updated_NAME", "filename"], inplace=True)
-    summary_output.rename(columns={"Original_NAME":"filename"},inplace=True)
-
+    summary_output.rename(columns={"Original_NAME": "filename", "formula": "Top_score_formula"}, inplace=True)
 
     # Save summary output files.
     summary_file = "formula_summary.csv"

@@ -52,7 +52,7 @@ STOFF=False
 NANPDB=False
 COCONUT=False
 IsUserDefinedDB=True
-UserDefinedDbFilePath=D:\python\msemblator2\msemblator\msfinder\coconutandBLEXP.txt
+UserDefinedDbFilePath=D:\python\msemblator2\script\msfinder\coconutandBLEXP.txt
 
 #Spectral database search
 IsRunSpectralDbSearch=False
