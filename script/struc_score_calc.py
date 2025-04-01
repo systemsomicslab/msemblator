@@ -66,71 +66,61 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
     return df_original
 
 
-def aggregate_probability_with_rank(df, top_n=3):
+import pandas as pd
+
+import pandas as pd
+
+def aggregate_probability_with_rank(df: pd.DataFrame, top_n: int = 3) -> pd.DataFrame:
     """
-    Aggregates `confidence_score` for each `Canonical_SMILES` within each `filename`,
-    selects the top `top_n` `Canonical_SMILES` with the highest aggregated score per `filename`,
-    and retrieves the corresponding original tool ranks.
+    Aggregate confidence scores per structure per file, rank them, and list the tools that reported each structure.
 
     Parameters:
-        df (pd.DataFrame): Input DataFrame, must include original tool ranks like `rank_metfrag`, etc.
-        top_n (int): Number of top-ranked SMILES to include per filename (based on aggregated score).
+        df (pd.DataFrame): Input DataFrame with the following columns:
+            - filename
+            - Canonical_SMILES
+            - confidence_score
+            - rank (tool-specific rank)
+            - adduct
+            - tool_name_metfrag, tool_name_msfinder, tool_name_sirius (as flags: 0 or 1)
+        top_n (int): Number of top SMILES to return per filename.
 
     Returns:
-        pd.DataFrame: Summary DataFrame with filename, adduct, score, SMILES, and original tool ranks.
+        pd.DataFrame: Summary with filename, structure, rank, score, and tools used.
     """
-    # Step 1: Aggregate confidence_score by filename + Canonical_SMILES
-    df_filtered = df.groupby(["filename", "Canonical_SMILES"], as_index=False).agg(
+    def extract_tool_rank(row):
+        tools = []
+        if row.get("tool_name_metfrag", 0) == 1:
+            tools.append(f"MetFrag(rank={int(row['rank'])})")
+        if row.get("tool_name_msfinder", 0) == 1:
+            tools.append(f"MS-FINDER(rank={int(row['rank'])})")
+        if row.get("tool_name_sirius", 0) == 1:
+            tools.append(f"SIRIUS(rank={int(row['rank'])})")
+        return ", ".join(tools)
+
+    df["Used_Tool"] = df.apply(extract_tool_rank, axis=1)
+
+    grouped = df.groupby(["filename", "Canonical_SMILES"], as_index=False).agg(
         confidence_score_sum=("confidence_score", "sum")
     )
-    df_filtered["confidence_score_sum"] = df_filtered["confidence_score_sum"].fillna(0)
+    grouped["rank"] = grouped.groupby("filename")["confidence_score_sum"] \
+                             .rank(method="first", ascending=False).astype(int)
+    top = grouped[grouped["rank"] <= top_n]
 
-    # Step 2: Assign rank based on aggregated score within each filename
-    df_filtered["rank"] = df_filtered.groupby("filename")["confidence_score_sum"] \
-                                     .rank(method="first", ascending=False).astype(int)
+    merged = df.merge(
+        top.rename(columns={"rank": "agg_rank"})[["filename", "Canonical_SMILES", "agg_rank", "confidence_score_sum"]],
+        on=["filename", "Canonical_SMILES"],
+        how="inner"
+    )
 
-    # Step 3: Keep only top-N entries
-    df_top_smiles = df_filtered[df_filtered["rank"] <= top_n]
-
-    # Step 4: Merge original DataFrame with top-ranked SMILES (do not change this line)
-    df_max_info = df.merge(df_top_smiles, on=["filename", "Canonical_SMILES"], how="inner")
-
-    # Step 5: Ensure correct data types
-    df_max_info["filename"] = df_max_info["filename"].astype(str)
-    df_max_info["adduct"] = df_max_info["adduct"].astype(str)
-
-    # Step 6: Restore rank if missing after merge
-    if "rank" not in df_max_info.columns:
-        df_max_info = df_max_info.merge(
-            df_top_smiles[["filename", "Canonical_SMILES", "rank"]],
-            on=["filename", "Canonical_SMILES"],
-            how="left"
-        )
-    df_max_info["rank"] = df_max_info["rank"].astype(int)
-
-    # Step 7: Create Tool_Rank using original tool-specific rank values (do not change logic here)
-    def extract_tool_rank(row):
-        ranks = []
-        if row.get("tool_name_metfrag", 0) == 1 and pd.notnull(row.get("rank")):
-            ranks.append(f"MetFrag(rank={int(row['rank'])})")
-        if row.get("tool_name_msfinder", 0) == 1 and pd.notnull(row.get("rank")):
-            ranks.append(f"MS-FINDER(rank={int(row['rank'])})")
-        if row.get("tool_name_sirius", 0) == 1 and pd.notnull(row.get("rank")):
-            ranks.append(f"SIRIUS(rank={int(row['rank'])})")
-        return ", ".join(ranks)
-
-
-    df_max_info["Tool_Rank"] = df_max_info.apply(extract_tool_rank, axis=1)
-    df_max_info["Used_Tool"] = df_max_info["Tool_Rank"]
-
-    # Step 8: Group and summarize final output
-    df_summary = df_max_info.groupby(["filename", "Canonical_SMILES", "rank"]).agg(
+    summary = merged.groupby(["filename", "Canonical_SMILES", "agg_rank"]).agg(
         adduct=("adduct", "first"),
         confidence_score_sum=("confidence_score_sum", "first"),
-        Used_Tool=("Used_Tool", lambda x: ", ".join(set(x)))
-    ).reset_index()
+        Used_Tool=("Used_Tool", lambda x: ", ".join(sorted(set(x))))
+    ).reset_index().rename(columns={"agg_rank": "rank"})
 
-    return df_summary
+    return summary
+
+
 
 
 

@@ -58,65 +58,56 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
 
     return df_original
 
-def aggregate_probability_with_rank_top3(df, top_n=3):
+def aggregate_probability_with_rank_top3(df: pd.DataFrame, top_n: int = 3) -> pd.DataFrame:
     """
-    Aggregates `confidence_score` per `formula` within each `filename`,
-    selects top-N formulas, and shows each tool's original rank.
+    Aggregate confidence scores per (filename, formula), rank them, and report tools that found each formula.
 
     Parameters:
-        df (pd.DataFrame): Input data with tool_name_* and rank columns.
-        top_n (int): Top N entries to keep.
+        df (pd.DataFrame): Input data. Must include:
+            - 'filename', 'formula', 'confidence_score', 'adduct'
+            - 'rank' (tool-specific rank)
+            - 'tool_name_buddy', 'tool_name_msfinder', 'tool_name_sirius'
+        top_n (int): Number of top formulas to retain per filename.
 
     Returns:
-        pd.DataFrame: Summary with original tool ranks.
+        pd.DataFrame: Summary with confidence_score_sum, rank, and Used_Tool per formula.
     """
-    # Aggregate confidence_score
-    df_filtered = df.groupby(["filename", "formula"], as_index=False).agg(
+    def extract_tool_rank(row):
+        tools = []
+        if row.get("tool_name_buddy", 0) == 1:
+            tools.append(f"msbuddy(rank={int(row['rank'])})")
+        if row.get("tool_name_msfinder", 0) == 1:
+            tools.append(f"MS-FINDER(rank={int(row['rank'])})")
+        if row.get("tool_name_sirius", 0) == 1:
+            tools.append(f"SIRIUS(rank={int(row['rank'])})")
+        return ", ".join(tools)
+
+    # Add Used_Tool info per row
+    df["Used_Tool"] = df.apply(extract_tool_rank, axis=1)
+
+    # Aggregate confidence scores
+    grouped = df.groupby(["filename", "formula"], as_index=False).agg(
         confidence_score_sum=("confidence_score", "sum")
     )
-    df_filtered["confidence_score_sum"] = df_filtered["confidence_score_sum"].fillna(0)
+    grouped["rank"] = grouped.groupby("filename")["confidence_score_sum"] \
+                             .rank(method="first", ascending=False).astype(int)
 
-    # Add rank based on aggregated score
-    df_filtered["rank"] = df_filtered.groupby("filename")["confidence_score_sum"] \
-                                     .rank(method="first", ascending=False).astype(int)
+    # Keep top-N formulas per file
+    top = grouped[grouped["rank"] <= top_n]
 
-    # Keep top-N
-    df_top = df_filtered[df_filtered["rank"] <= top_n]
+    # Merge back into original to collect all tool-specific rows
+    merged = df.merge(
+        top.rename(columns={"rank": "agg_rank"})[["filename", "formula", "agg_rank", "confidence_score_sum"]],
+        on=["filename", "formula"],
+        how="inner"
+    )
 
-    # Merge with original data
-    df_max_info = df.merge(df_top, on=["filename", "formula"], how="inner")
-
-    # Recover rank if needed
-    if "rank" not in df_max_info.columns:
-        df_max_info = df_max_info.merge(
-            df_top[["filename", "formula", "rank"]],
-            on=["filename", "formula"],
-            how="left"
-        )
-
-    df_max_info["rank"] = df_max_info["rank"].astype(int)
-    df_max_info["filename"] = df_max_info["filename"].astype(str)
-    df_max_info["adduct"] = df_max_info["adduct"].astype(str)
-
-
-    def extract_tool_rank(row):
-        ranks = []
-        if row.get("tool_name_buddy", 0) == 1 and pd.notnull(row.get("rank")):
-            ranks.append(f"msbuddy(rank={int(row['rank'])})")
-        if row.get("tool_name_msfinder", 0) == 1 and pd.notnull(row.get("rank")):
-            ranks.append(f"MS-FINDER(rank={int(row['rank'])})")
-        if row.get("tool_name_sirius", 0) == 1 and pd.notnull(row.get("rank")):
-            ranks.append(f"SIRIUS(rank={int(row['rank'])})")
-        return ", ".join(ranks)
-
-    df_max_info["Tool_Rank"] = df_max_info.apply(extract_tool_rank, axis=1)
-    df_max_info["Used_Tool"] = df_max_info["Tool_Rank"]
-
-    # Summary table
-    df_summary = df_max_info.groupby(["filename", "formula", "rank"]).agg(
+    # Final summary table
+    summary = merged.groupby(["filename", "formula", "agg_rank"]).agg(
         adduct=("adduct", "first"),
         confidence_score_sum=("confidence_score_sum", "first"),
-        Used_Tool=("Used_Tool", lambda x: ", ".join(set(x)))
-    ).reset_index()
+        Used_Tool=("Used_Tool", lambda x: ", ".join(sorted(set(x))))
+    ).reset_index().rename(columns={"agg_rank": "rank"})
 
-    return df_summary
+    return summary
+
