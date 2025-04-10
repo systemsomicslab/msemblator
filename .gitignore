@@ -1,7 +1,5 @@
-# キャッシュフォルダ
 __pycache__/
 
-# データフォルダ（必要ならコメントアウト）
 script/buddy/
 script/data/
 demo_data/
