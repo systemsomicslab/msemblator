@@ -40,7 +40,7 @@ python main.py --input data/formula_predicted.msp --output results/structure_onl
 ## Input file preparation
 Msemblator does not support raw data as input. Instead, **MSP files processed with MS-DIAL 5** are strongly recommended. The application utilizes MS-DIAL's MSP output to perform **formula and structure predictions**.
 
-・ Formula prediction requires at least **m/z, MS2, Peak ID, and adduct type**.
+・ Formula prediction requires at least **m/z, MS2 and adduct type**.
 ・ **Structure prediction** requires the above information plus a **predicted molecular formula**.
 ・ If formula information is missing, structure prediction will be skipped. However, this limitation can be resolved by performing both formula and structure predictions simultaneously.
 
