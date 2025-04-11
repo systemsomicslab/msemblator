@@ -26,8 +26,10 @@ def main():
     current_dir = os.path.abspath(os.path.dirname(__file__))
     formula_fixed_msp_path = os.path.join(current_dir, "save_folder", "formula_fixed_msp", "formula_fixed.msp").replace("\\", "\\\\")
     converted_msp_path = os.path.join(current_dir, "save_folder", "formula_fixed_msp", "id_change.msp").replace("\\", "\\\\")
-
-
+    save_folder = os.path.join(current_dir, "save_folder", "formula_fixed_msp")
+    for folder in [save_folder]:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
     original_data = read_msp_file(input_msp_path)
     updated_data, name_df = convert_name_to_peakid(original_data)
     save_updated_msp(converted_msp_path, updated_data)

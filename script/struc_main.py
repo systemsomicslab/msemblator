@@ -42,6 +42,12 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     for folder in [msp_folder, ms_dir, msfinder_folder, sirius_outputdir]:
         clear_folder(folder)
 
+    # Ensure necessary folders exist.
+    for folder in [msp_folder, metfrag_paramater_dir, ms_dir, msfinder_folder, sirius_outputdir]:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+
     # SIRIUS Processing
     sirius_start_time = time.time()
     print("SIRIUS processing start")

@@ -45,7 +45,7 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
         clear_folder(folder)
 
     # Ensure necessary folders exist.
-    for folder in [msp_folder, ms_folder, mgf_folder]:
+    for folder in [msp_folder, ms_folder, mgf_folder, msfinder_folder, buddy_folder, sirius_folder]:
         if not os.path.exists(folder):
             os.makedirs(folder)
 
