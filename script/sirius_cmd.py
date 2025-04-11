@@ -90,4 +90,3 @@ def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path):
     except subprocess.CalledProcessError as e:
         print("An error occurred while executing the command:")
         print(e.stderr)
-

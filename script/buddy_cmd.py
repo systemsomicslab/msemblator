@@ -86,7 +86,6 @@ def run_msbuddy(input_dir, output_dir, batch_size=1000):
                         "RT": rt_value,
                         "Rank": i+1,
                         "Formula": candidate.formula,
-                        "MLR_score": getattr(candidate, "mlr_score", None),
                         "Estimated_FDR": getattr(candidate, "estimated_fdr", None)
                     })
 

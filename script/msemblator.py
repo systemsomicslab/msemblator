@@ -5,9 +5,7 @@ from formula_main import formula_elucidation
 from struc_main import structure_elucidation
 from msp_format_change import msp_formula_changer, read_msp_file, convert_name_to_peakid, save_updated_msp
 from struc_score_normalization import ClippingTransformer
-
 import sys
-print(sys.executable)
 
 
 def main():

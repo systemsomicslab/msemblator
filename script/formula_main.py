@@ -10,7 +10,7 @@ from msfinder_cmd import run_msfinder
 from sirius_cmd import sirius_login, run_sirius
 from buddy_cmd import run_msbuddy
 from creating_summary import creating_output_summary
-from converting_data_type import generate_unique_filename, ClippingTransformer as ClippingTransformer_v2
+from converting_data_type import generate_unique_filename, ClippingTransformer
 
 def formula_elucidation(input_msp_path, summary_output_dir, name_df):
 
@@ -28,7 +28,6 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
     msfinder_folder = os.path.join(current_dir, "msfinder", "output")
     buddy_folder = os.path.join(current_dir, "buddy")
     sirius_folder = os.path.join(current_dir, "sirius4", "output")
-    # msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.60")
     msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.61")
     msfinder_method_path = os.path.join(current_dir, "msfinder", "MsfinderConsoleApp_Param_formula.txt")
     model_dir = os.path.join(current_dir, "formula_scoring_model")

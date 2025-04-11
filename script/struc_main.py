@@ -44,8 +44,8 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
 
     # SIRIUS Processing
     sirius_start_time = time.time()
+    print("SIRIUS processing start")
     try:
-        logging.info("Starting SIRIUS processing...")
         ms_file = convert_msp_file_to_ms(input_msp)
         save_file(sirius_inputdir, ms_file)
         sirius_login(sirius_directory, username, password)
@@ -53,12 +53,13 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     except Exception as e:
         logging.error(f"SIRIUS processing failed: {e}")
     sirius_end_time = time.time()
+    print("SIRIUS processing complete")
     logging.info(f"SIRIUS processing time: {sirius_end_time - sirius_start_time:.2f} seconds")
     
     # MetFrag Processing
     metfrag_start_time = time.time()
+    print("MetFrag processing start")
     try:
-        logging.info("Starting MetFrag processing...")
         creat_metfrag_file(
             input_msp, 
             os.path.join(metfrag_paramater_dir, "example_paramater.txt"),
@@ -68,26 +69,28 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
         run_metfrag_command(metfrag_paramater_dir)
     except Exception as e:
         logging.error(f"MetFrag processing failed: {e}")
+    print("MetFrag processing complete")
     metfrag_end_time = time.time()
     logging.info(f"MetFrag processing time: {metfrag_end_time - metfrag_start_time:.2f} seconds")
     
     # MS-FINDER Processing 
     msfinder_start_time = time.time()
+    print("MS-FINDER processing start")
     try:
-        logging.info("Starting MSFinder processing...")
         split_data = read_msp(input_msp)
         for filename, content in split_data.items():
             save_file(os.path.join(msp_folder, f"{filename}.msp"), content)
         run_msfinder(msfinder_directory, msp_folder, msfinder_folder, method_path, library_path)
     except Exception as e:
         logging.error(f"MSFinder processing failed: {e}")
+    print("MS-FINDER processing complete")
     msfinder_end_time = time.time()
     logging.info(f"MSFinder processing time: {msfinder_end_time - msfinder_start_time:.2f} seconds")
     
     # Summary Generation
     summary_start_time = time.time()
+    print("Generating output files...")
     try:
-        logging.info("Generating summary...")
         result_score_df, summary_smiles_df = struc_summary(
             input_msp, msfinder_folder, machine_dir, sirius_outputdir, metfrag_paramater_dir
         )

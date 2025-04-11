@@ -68,115 +68,53 @@ def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
     print("Processing complete. Check the output file for results.")
 
 
-
 def convert_name_to_peakid(msp_data):
     """
-    Convert the NAME field to PEAKID for each spectrum block in the MSP data.
-    Ensures uniqueness of PEAKID by appending suffixes if needed.
+    Replace the NAME field with sequential numbers in each spectrum block.
+    Optionally adds |ORIGNAME=...| to COMMENT line.
     """
     blocks = re.split(r'\n\s*\n', msp_data.strip())
     updated_blocks = []
     records = []
-    peakid_counts = {}  # Track occurrence counts of each PEAKID
 
-    for block in blocks:
+    for i, block in enumerate(blocks, start=1):
         lines = block.splitlines()
         original_name = None
-        new_name = None
         new_lines = []
+        comment_updated = False
 
         for line in lines:
             if line.lower().startswith("name:"):
                 original_name = line.split(":", 1)[1].strip()
-                new_name = original_name
-                new_lines.append(line)
+                new_lines.append(f"NAME: {i}")
                 continue
 
             if line.lower().startswith("comment:"):
-                comment_line = line
-                if "|PEAKID=" in comment_line:
-                    match = re.search(r'\|PEAKID=([^|]+)\|', comment_line)
-                    if match:
-                        base_peakid = match.group(1).strip()
-
-                        # Ensure PEAKID uniqueness
-                        count = peakid_counts.get(base_peakid, 0)
-                        if count == 0:
-                            new_name = base_peakid
-                        else:
-                            new_name = f"{base_peakid}_{count}"
-                        peakid_counts[base_peakid] = count + 1
-
-                        # Append ORIGNAME if missing
-                        if "|ORIGNAME=" not in comment_line and original_name:
-                            comment_line += f"|ORIGNAME={original_name}|"
-                new_lines.append(comment_line)
+                comment = line
+                # Remove existing ORIGNAME if any
+                comment = re.sub(r'\|ORIGNAME=[^|]+\|', '', comment)
+                comment = comment.rstrip('|')  # avoid trailing |
+                if original_name:
+                    comment += f"|ORIGNAME={original_name}|"
+                new_lines.append(comment)
+                comment_updated = True
                 continue
 
             new_lines.append(line)
 
-        # Replace NAME line
-        if original_name is not None and new_name is not None:
-            for i, line in enumerate(new_lines):
-                if line.lower().startswith("name:"):
-                    new_lines[i] = f"NAME: {new_name}"
-                    break
+        # Add a COMMENT if not already present
+        if not comment_updated and original_name:
+            new_lines.append(f"COMMENT: |ORIGNAME={original_name}|")
 
         updated_blocks.append("\n".join(new_lines))
         records.append({
             "Original_NAME": original_name,
-            "Updated_NAME": new_name
+            "Updated_NAME": str(i)
         })
 
     updated_msp_data = "\n\n".join(updated_blocks)
     df = pd.DataFrame(records)
-
     return updated_msp_data, df
-
-
-def revert_name_from_peakid(msp_data):
-    """
-    Revert the NAME field to the original value for each spectrum block in the MSP data.
-    The function searches for the ORIGNAME tag in the COMMENT line, replaces the NAME field
-    with the original name, and removes the ORIGNAME tag from the COMMENT.
-
-    Parameters:
-        msp_data (str): The MSP data (with NAME replaced by PEAKID) as a string.
-
-    Returns:
-        str: The MSP data with the original NAME restored.
-    """
-    blocks = re.split(r'\n\s*\n', msp_data.strip())
-    reverted_blocks = []
-    
-    for block in blocks:
-        lines = block.splitlines()
-        original_name = None
-        new_lines = []
-        
-        for line in lines:
-            # Check the COMMENT line for the ORIGNAME tag.
-            if line.lower().startswith("comment:"):
-                match = re.search(r'\|ORIGNAME=([^|]+)\|', line)
-                if match:
-                    original_name = match.group(1).strip()
-                    # Remove the ORIGNAME tag from the COMMENT line.
-                    line = re.sub(r'\|ORIGNAME=[^|]+\|', '', line)
-                new_lines.append(line)
-                continue
-            
-            new_lines.append(line)
-        
-        # Replace the NAME line with the original_name if found.
-        if original_name:
-            for i, line in enumerate(new_lines):
-                if line.lower().startswith("name:"):
-                    new_lines[i] = f"NAME: {original_name}"
-                    break
-        
-        reverted_blocks.append("\n".join(new_lines))
-    
-    return "\n\n".join(reverted_blocks)
 
 
 def read_msp_file(file_path):
