@@ -46,10 +46,41 @@ Msemblator does not support raw data as input. Instead, **MSP files processed wi
 
 ## Output files
 Msemblator generates two output files:
-1. A file containing **the top 3 predictions** from each annotation tool for both formula and structure, along with **the highest-ranked annotation based on the ensemble scoring model**.
-2. A file summarizing **the top 3 ranked predictions from the scoring model**.
+1. A file containing **the top 3 predictions** from each annotation tool for both formula and structure, along with **the highest-ranked annotation based on the ensemble scoring model**.  
+2. A file summarizing **the top 3 ranked predictions from the scoring model**.  
 
-This structured approach ensures that users obtain high-confidence annotations from their metabolomics data.
+This structured approach ensures that users obtain high-confidence annotations from their metabolomics data.  
+
+## Parameter tuning  
+Msemblator provides the flexibility to adjust parameters for the integrated annotation tools (SIRIUS, MS-FINDER, MetFrag, etc.) if needed, allowing users to fine-tune the workflow for specific datasets or experimental goals. Below are the main components where parameter tuning is supported.  
+
+### MetFrag  
+MetFrag settings can be modified via the following file:  
+```
+metfrag\example_parameter.txt
+```
+This file controls various options such as scoring weights, number of candidate structures, and the compound database used. Refer to the [MetFrag documentation](https://ipb-halle.github.io/MetFrag/projects/metfragcl/)for a detailed explanation of each parameter.  
+
+### SIRIUS  
+Advanced users can manually modify the SIRIUS command-line parameters used for each task by editing the corresponding scripts:  
+・**Formula prediction parameters** → `sirius_cmd.py`  
+・**Structure prediction parameters** →　`sirius_struc_cmd.py`  
+
+### MS-FINDER
+MS-FINDER settings can be modified via the following file:  
+・**Formula prediction parameters**
+```
+msfinder\MsfinderConsoleApp_Param_formula.txt
+```
+
+・**Structure prediction parameters**
+```
+msfinder\MsfinderConsoleApp-Param_all_processing.txt
+```
+
+### msbuddy
+msbuddy parameter setting can editing the relevant code in `buddy_cmd`.
+
 
 ## Environment setup
 ### 1. Python version:
