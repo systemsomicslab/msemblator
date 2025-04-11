@@ -28,8 +28,6 @@ def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
                 # If a new compound starts, check if the previous entry should be written
                 if add_entry and temp_entry and has_valid_formula:
                     output_msp.writelines(temp_entry)  # Write the valid entry
-                elif not has_valid_formula:
-                    print(f"Skipping entire entry: {current_name} due to missing or 'nan' FORMULA.")  # Debug
 
                 # Start a new compound
                 temp_entry = [line]
@@ -40,10 +38,8 @@ def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
                 # Check if the compound exists in the dictionary
                 if current_name in rename and pd.notna(rename[current_name]):  # Ensure it's not NaN
                     add_entry = True
-                    print(f"Compound {current_name} found. Checking FORMULA.")  # Debug
                 else:
                     add_entry = False
-                    print(f"Compound {current_name} not found or has NaN FORMULA. Skipping.")  # Debug
 
             elif current_name and add_entry:
                 # Modify the FORMULA field if necessary
@@ -52,10 +48,8 @@ def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
                     if new_formula and new_formula.lower() != "nan":  # Ensure FORMULA is valid
                         line = f"FORMULA: {new_formula}\n"
                         has_valid_formula = True  # Mark that the entry has a valid FORMULA
-                        print(f"Updated FORMULA for {current_name}: {new_formula}")  # Debug
                     else:
                         has_valid_formula = False  # Ensure we skip this entry if FORMULA is invalid
-                        print(f"Skipping {current_name} due to missing or 'nan' FORMULA.")  # Debug
 
                 temp_entry.append(line)
 
@@ -63,7 +57,7 @@ def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
         if add_entry and temp_entry and has_valid_formula:
             output_msp.writelines(temp_entry)
         elif not has_valid_formula:
-            print(f"Skipping entire entry: {current_name} due to missing or 'nan' FORMULA.")  # Debug
+            print(f"Skipping entire entry: {current_name} due to missing or 'nan' FORMULA.")  
 
     print("Processing complete. Check the output file for results.")
 
