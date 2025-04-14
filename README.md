@@ -119,7 +119,8 @@ msemblator/
 │   ├─ MSFINDER ver 3.61/        # MS-FINDER executable and resources
 │   ├─ msp/                      # Input MSP files for MS-FINDER
 │   ├─ output/                   # MS-FINDER output (structures)
-│   └─ output_formula/          # MS-FINDER output (formulas only)
+│   ├─ output_formula/          # MS-FINDER output (formulas only)
+│   └─ coconutandBLEXP.txt/    # MS-FINDER structure database
 ├─ save_folder/                # Intermediate files during execution
 │   ├─ buddy_mgf/               # MGF files for BUDDY input
 │   ├─ formula_fixed_msp/       # MSP files with updated formula information
