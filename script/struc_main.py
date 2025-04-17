@@ -1,6 +1,7 @@
 import os
 import shutil
 import getpass
+import glob
 import pandas as pd
 import time
 import logging
@@ -16,13 +17,15 @@ from struc_score_normalization import ClippingTransformer
 
 # Clear required folders
 def structure_elucidation(input_msp, summary_output_dir, username, password, msfinder_method_file, name_df):
+    print("Running structure elucidation")
     # Set up logging configuration.
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     
     # Define directories and paths.
     current_dir = os.path.abspath(os.path.dirname(__file__))
-    # msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.60")
-    msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.61")
+    msfinder_directorys = os.path.join(current_dir, "msfinder", "MSFINDER*")
+    msfinder_dirs = glob.glob(msfinder_directorys)
+    msfinder_directory = msfinder_dirs[0]
     msfinder_folder = os.path.join(current_dir, "msfinder", "output")
     library_path = os.path.join(current_dir, "msfinder", "coconutandBLEXP.txt")
     method_path = os.path.join(current_dir, "msfinder", msfinder_method_file)
@@ -117,4 +120,5 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
         logging.error(f"Summary generation failed: {e}")
     summary_end_time = time.time()
     logging.info(f"Summary generation time: {summary_end_time - summary_start_time:.2f} seconds")
+    print("structure elucidation complete")
     

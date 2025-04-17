@@ -3,6 +3,7 @@ import sys
 import shutil
 import pandas as pd
 import time
+import glob
 from splitting_msp import read_msp
 from msp_to_mgf import convert_msp_to_mgf, split_mgf_by_adduct_in_memory
 from msp_to_ms import convert_msp_file_to_ms
@@ -13,6 +14,7 @@ from creating_summary import creating_output_summary
 from converting_data_type import generate_unique_filename, ClippingTransformer
 
 def formula_elucidation(input_msp_path, summary_output_dir, name_df):
+    print("Running formula elucidation")
 
     # Set current directory and add it to the Python path.
     current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -28,7 +30,9 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
     msfinder_folder = os.path.join(current_dir, "msfinder", "output")
     buddy_folder = os.path.join(current_dir, "buddy")
     sirius_folder = os.path.join(current_dir, "sirius4", "output")
-    msfinder_directory = os.path.join(current_dir, "msfinder", "MSFINDER ver 3.61")
+    msfinder_directorys = os.path.join(current_dir, "msfinder", "MSFINDER*")
+    msfinder_dirs = glob.glob(msfinder_directorys)
+    msfinder_directory = msfinder_dirs[0]
     msfinder_method_path = os.path.join(current_dir, "msfinder", "MsfinderConsoleApp_Param_formula.txt")
     model_dir = os.path.join(current_dir, "formula_scoring_model")
     sirius_path = os.path.join(current_dir, "sirius4", "sirius.exe")
