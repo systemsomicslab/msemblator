@@ -83,10 +83,10 @@ def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path):
     ]
 
     try:
-        # Run the command and capture the output
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
-        print("Command executed successfully:")
-        print(result.stdout)
-    except subprocess.CalledProcessError as e:
-        print("An error occurred while executing the command:")
-        print(e.stderr)
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
+            for line in proc.stdout:
+                print(line, end="")
+            proc.wait()
+
+    except Exception as e:
+        print(f"An error occurred during SIRIUS execution: {e}")

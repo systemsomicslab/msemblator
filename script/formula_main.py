@@ -29,13 +29,13 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
     mgf_folder = os.path.join(current_dir, "save_folder", "buddy_mgf")
     msfinder_folder = os.path.join(current_dir, "msfinder", "output")
     buddy_folder = os.path.join(current_dir, "buddy")
-    sirius_folder = os.path.join(current_dir, "sirius4", "output")
+    sirius_folder = os.path.join(current_dir, "sirius", "output")
     msfinder_directorys = os.path.join(current_dir, "msfinder", "MSFINDER*")
     msfinder_dirs = glob.glob(msfinder_directorys)
     msfinder_directory = msfinder_dirs[0]
     msfinder_method_path = os.path.join(current_dir, "msfinder", "MsfinderConsoleApp_Param_formula.txt")
     model_dir = os.path.join(current_dir, "formula_scoring_model")
-    sirius_path = os.path.join(current_dir, "sirius4", "sirius.exe")
+    sirius_path = os.path.join(current_dir, "sirius", "sirius.exe")
     msfinder_file_path = os.path.join(current_dir, "msfinder", "output", "Formula*.txt")
 
     # Function to clear folder contents.

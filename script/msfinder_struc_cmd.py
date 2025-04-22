@@ -1,50 +1,36 @@
 import subprocess
+import os
+import sys
 from convert_struc_data_type import modify_msfinder_config_in_place
 
 
 def run_msfinder(msfinder_directory, input_path, output_path, method_path, library_path):
-    """
-    Executes the MSFinder tool using the specified input, output, and method paths.
 
-    Args:
-        msfinder_directory (str): Directory containing the MSFinder executable.
-        input_path (str): Path to the input data (e.g., MSP files).
-        output_path (str): Path to the output directory where results will be saved.
-        method_path (str): Path to the MSFinder method parameter file.
+    # Modify config before running
+    modify_msfinder_config_in_place(method_path, library_path)
 
-    Returns:
-        None
-    """
-    # modify msfinder config
-    modify_msfinder_config_in_place(method_path,library_path)
-    
-    # Define the MSFinder executable
-    msfinder_exe = "MsfinderConsoleApp.exe"
+    # Full path to MSFinder executable
+    msfinder_exe = os.path.join(msfinder_directory, "MsfinderConsoleApp.exe")
 
-    # Construct the PowerShell command to run MSFinder
-    command = f'$env:PATH += ";{msfinder_directory}"; {msfinder_exe} predict -i "{input_path}" -o "{output_path}" -m "{method_path}"'
+    if not os.path.exists(msfinder_exe):
+        print(f"Error: Executable not found at {msfinder_exe}")
+        return
+
+    # Prepare command
+    command = [
+        msfinder_exe,
+        "predict",
+        "-i", input_path,
+        "-o", output_path,
+        "-m", method_path
+    ]
 
     try:
-        # Execute the command in PowerShell
-        with subprocess.Popen(
-            ["powershell", "-Command", command],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        ) as proc:
-            # Capture and print standard output in real-time
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
                 print(line, end="")
+            proc.wait()
 
-            # Capture and handle errors
-            stderr_output = proc.stderr.read()
-            if stderr_output:
-                print("Error occurred during MSFinder execution:")
-                print(stderr_output)
-
-    except FileNotFoundError as e:
-        print(f"Error: MSFinder executable not found in {msfinder_directory}. Ensure the path is correct.")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-
+        print(f"An error occurred during MS-FINDER execution: {e}")
 

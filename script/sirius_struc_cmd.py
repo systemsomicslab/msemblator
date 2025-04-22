@@ -94,10 +94,10 @@ def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_s
     ]
 
     try:
-        # Execute the Sirius command
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
-        print("Sirius execution completed successfully:")
-        print(result.stdout)
-    except subprocess.CalledProcessError as e:
-        print("An error occurred during Sirius execution:")
-        print(e.stderr)
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
+            for line in proc.stdout:
+                print(line, end="")
+            proc.wait()
+
+    except Exception as e:
+        print(f"An error occurred during SIRIUS execution: {e}")
