@@ -107,8 +107,6 @@ Please download the required external tools and place them in the following reco
 #### Project structure  
 ```text
 msemblator/
-├─ buddy/                      # Output folder for msbuddy
-├─ data/                       # example of input file
 ├─ structure_scoring_model/    # Structure scoring models
 ├─ metfrag/                    # MetFrag integration
 │   ├─ example_parameter.txt     # Configuration file for MetFrag
@@ -117,21 +115,13 @@ msemblator/
 ├─ formula_scoring_model/      # Formula scoring models
 ├─ msfinder/                   # MS-FINDER integration
 │   ├─ MSFINDER ver 3.61/        # MS-FINDER executable and resources
-│   ├─ msp/                      # Input MSP files for MS-FINDER
-│   ├─ output/                   # MS-FINDER output (structures)
-│   ├─ output_formula/          # MS-FINDER output (formulas only)
+│   ├─ MsfinderConsoleApp_Param_formula.txt/     # Parameter for MS-FINDER
+│   ├─ MsfinderConsoleApp-Param_all_processing.txt/    # Parameter for MS-FINDER
 │   └─ coconutandBLEXP.txt/    # MS-FINDER structure database
-├─ save_folder/                # Intermediate files during execution
-│   ├─ buddy_mgf/               # MGF files for BUDDY input
-│   ├─ formula_fixed_msp/       # MSP files with updated formula information
-│   ├─ msfinder_msp/            # Reformatted MSP files for MS-FINDER
-│   └─ sirius_ms/               # Reformatted files for SIRIUS input
-└─ sirius4/                    
+└─ sirius/                    
     ├─ app/
     ├─ database/               # SIRIUS structure database 
     ├─ ExplorerLicTester/
-    ├─ ms/
-    ├─ output/
     ├─ ... (other resources)
     ├─ sirius.exe               # Main SIRIUS executable (CLI)
     └─ sirius-gui.exe           
