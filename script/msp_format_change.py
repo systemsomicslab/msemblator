@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-
+import logging
 def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
     formula_summary = formula_summary[["filename","formula"]]
 
@@ -24,7 +24,7 @@ def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
         has_valid_formula = False  # Flag to check if a valid FORMULA exists
 
         for line in lines:
-            if line.startswith("NAME:"):
+            if line.lower().startswith("name:"):
                 # If a new compound starts, check if the previous entry should be written
                 if add_entry and temp_entry and has_valid_formula:
                     output_msp.writelines(temp_entry)  # Write the valid entry
@@ -43,7 +43,7 @@ def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
 
             elif current_name and add_entry:
                 # Modify the FORMULA field if necessary
-                if line.startswith("FORMULA:"):
+                if line.lower().startswith("formula:"):
                     new_formula = rename.get(current_name, "").strip()
                     if new_formula and new_formula.lower() != "nan":  # Ensure FORMULA is valid
                         line = f"FORMULA: {new_formula}\n"
@@ -119,4 +119,112 @@ def read_msp_file(file_path):
 def save_updated_msp(file_path, data):
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(data)
+
+def format_msp(spectrum):
+    try:
+        ms2_data = "\n".join(spectrum["ms2"])
+        format = (
+            f"NAME: {spectrum["name"]}\n"
+            f"PRECURSORMZ: {spectrum["precursormz"]}\n"
+            f"PRECURSORTYPE: {spectrum["precursortype"]}\n"
+            f"RETENTIONTIME: {spectrum["retentiontime"]}\n"
+            f"FORMULA: {spectrum["formula"]}\n"
+            f"ONTOLOGY: {spectrum["ontology"]}\n"
+            f"INCHIKEY: {spectrum["inchikey"]}\n"
+            f"SMILES: {spectrum["smiles"]}\n"
+            f"COMMENT: {spectrum["comment"]}\n"
+            f"Num Peaks: {spectrum["numpeaks"]}\n{ms2_data}"            
+        )
+        return format
+    except KeyError as e:
+        raise Exception(f"{e}")
+    
+def modify_msp_type(msp_data):
+        try:
+            lines = msp_data.strip().splitlines()
+            ms_data = []
+            spectrum = {}
+            is_in_peaks = False
+
+            for line in lines:
+                line = line.strip()
+                if line == '':
+                    # Handle the end of a spectrum
+                    if spectrum and "ms2" in spectrum:
+                        try:
+                            ms_data.append(format_msp(spectrum))
+                        except Exception as e:
+                            logging.error(f"Error formatting spectrum: {spectrum.get('compound', 'Unknown')} - {e}")
+                        spectrum = {}
+                    is_in_peaks = False
+                    continue
+                if line.casefold().startswith("name:"):
+                    # Handle a new spectrum
+                    if spectrum and "ms2" in spectrum:
+                        try:
+                            ms_data.append(format_msp(spectrum))
+                        except Exception as e:
+                            logging.error(f"Error formatting spectrum: {spectrum.get('compound', 'Unknown')} - {e}")
+                        spectrum = {}
+                    spectrum = {
+                        "name": "",
+                        "precursormz": "",
+                        "precursortype": "",
+                        "retentiontime": "",
+                        "formula": "",
+                        "ontology": "",
+                        "inchikey": "",
+                        "smiles": "",
+                        "comment": "",
+                        "numpeaks": "",
+                        "ms2": []
+                    }
+                    spectrum["name"] = line.split(':', 1)[1].strip()
+                elif line.casefold().startswith("precursormz:"):
+                    spectrum["precursormz"] = line.split(':', 1)[1].strip()
+                elif line.casefold().startswith("precursortype:"):
+                    spectrum["precursortype"] = line.split(':', 1)[1].strip()
+                elif line.casefold().startswith("retentiontime:"):
+                    spectrum["retentiontime"] = line.split(':', 1)[1].strip()
+                elif line.casefold().startswith("formula:"):
+                    spectrum["formula"] = line.split(':', 1)[1].strip()            
+                elif line.casefold().startswith("ontology:"):
+                    spectrum["ontology"] = line.split(':', 1)[1].strip()
+                elif line.casefold().startswith("inchikey:"):
+                    spectrum["inchikey"] = line.split(':', 1)[1].strip()
+                elif line.casefold().startswith("smiles:"):
+                    spectrum["smiles"] = line.split(':', 1)[1].strip()
+                elif line.casefold().startswith("comment:"):
+                    spectrum["comment"] = line.split(':', 1)[1].strip()
+                elif line.casefold().startswith("num peaks:"):
+                    spectrum["numpeaks"] = line.split(':', 1)[1].strip()
+                    is_in_peaks = True
+                elif is_in_peaks:
+                    mz_intensity = line.split()
+                    if len(mz_intensity) >= 2:
+                        mz = mz_intensity[0]
+                        intensity = mz_intensity[1]
+                        spectrum["ms2"].append(f'{mz}\t{intensity}')
+
+            # Process the last spectrum
+            if spectrum and "ms2" in spectrum:
+                try:
+                    ms_data.append(format_msp(spectrum))
+                except Exception as e:
+                    logging.error(f"Error formatting spectrum: {spectrum.get('compound', 'Unknown')} - {e}")
+
+            return "\n\n".join(ms_data)
+        except Exception as e:
+            logging.error(f"An unexpected error occurred during MSP to MS conversion: {e}")
+            raise
+
+def modify_msp_data_type(msp_file_path):
+    try:
+        msp_data = read_msp_file(msp_file_path)
+        msp_file_content = modify_msp_type(msp_data)
+
+        return msp_file_content
+    except Exception as e:
+        logging.error(f"{e}")
+        raise
 

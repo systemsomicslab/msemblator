@@ -3,7 +3,7 @@ import argparse
 import pandas as pd
 from formula_main import formula_elucidation
 from struc_main import structure_elucidation
-from msp_format_change import msp_formula_changer, read_msp_file, convert_name_to_peakid, save_updated_msp
+from msp_format_change import msp_formula_changer, convert_name_to_peakid, save_updated_msp, modify_msp_data_type
 from struc_score_normalization import ClippingTransformer
 import sys
 
@@ -30,7 +30,7 @@ def main():
     for folder in [save_folder]:
         if not os.path.exists(folder):
             os.makedirs(folder)
-    original_data = read_msp_file(input_msp_path)
+    original_data = modify_msp_data_type(input_msp_path)
     updated_data, name_df = convert_name_to_peakid(original_data)
     save_updated_msp(converted_msp_path, updated_data)
 
