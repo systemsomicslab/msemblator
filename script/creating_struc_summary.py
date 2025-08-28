@@ -43,10 +43,23 @@ def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfra
     # Append MetFrag score data
     smiles_score_df = pd.concat([smiles_score_df, metfrag_score_calc_df], ignore_index=True)
 
-    smiles_score_df.fillna("")
+    smiles_score_df["tool_name"] = (
+        smiles_score_df["tool_name"]
+        .astype("string")
+        .fillna("")        
+        .str.strip().str.lower()
+    )
     df_onehot = pd.get_dummies(smiles_score_df, columns=['tool_name'])
-    for col in df_onehot.filter(like='tool_name_').columns:
-        df_onehot[col] = df_onehot[col].astype(int)
+    required_col = ['tool_name_metfrag', 'tool_name_msfinder', 'tool_name_sirius']
+    for col in required_col:
+        if col not in df_onehot.columns:
+            df_onehot[col] = 0    
+    oh_cols = [c for c in df_onehot.columns if c.startswith("tool_name_")]
+    df_onehot[oh_cols] = df_onehot[oh_cols].astype(int)
+    df_onehot = df_onehot[['filename', 'adduct', 'rank', 'SMILES', 'normalization_Zscore', 'normalization_z_score_diff', 'normalized_rank'] + required_col]
+    df_onehot = df_onehot[df_onehot['SMILES'].notna() & (df_onehot['SMILES'].str.strip() != '')].copy()
+    
+
     score_calc_df = predict_and_append(df_onehot, machine_dir, adduct_column="adduct")
     convert_to_canonical_smiles(score_calc_df, 'SMILES')
     result_score_df = aggregate_probability_with_rank(score_calc_df)

@@ -29,11 +29,21 @@ def creating_output_summary(input_msp, sirius_folder, msfinder_file_path, buddy_
 
     # msbuddy summuary
     buddy_formula_df, score_df=process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df, score_df)
-
-    score_df.fillna("")
+    score_df["tool_name"] = (
+        score_df["tool_name"]
+        .astype("string")
+        .fillna("")        
+        .str.strip().str.lower()
+    )
     df_onehot = pd.get_dummies(score_df, columns=['tool_name'])
-    for col in df_onehot.filter(like='tool_name_').columns:
-        df_onehot[col] = df_onehot[col].astype(int)
+    required_col = ['tool_name_buddy', 'tool_name_msfinder', 'tool_name_sirius']
+    for col in required_col:
+        if col not in df_onehot.columns:
+            df_onehot[col] = 0
+    oh_cols = [c for c in df_onehot.columns if c.startswith("tool_name_")]
+    df_onehot[oh_cols] = df_onehot[oh_cols].astype(int)
+    df_onehot = df_onehot[['filename', 'adduct', 'rank', 'formula', 'Score_NZ', 'Score_NZ_diff', 'normalized_rank'] + required_col]
+    df_onehot = df_onehot[df_onehot['formula'].notna() & (df_onehot['formula'].str.strip() != '')].copy()
 
     calc_score_df = predict_and_append(df_onehot, machine_dir, adduct_column="adduct")
     summary_score_df = aggregate_probability_with_rank_top3(calc_score_df)

@@ -4,12 +4,9 @@ script/buddy/
 script/data/
 demo_data/
 script/structure_scoring_model/
-script/metfrag/library_psv_v2.txt
-script/metfrag/MetFragCommandLine-2.5.0.jar
 formula_scoring_model/
-script/msfinder/MSFINDER ver 3.60/
-script/msfinder/MSFINDER ver 3.61/
-script/msfinder/coconutandBLEXP.txt
+script/msfinder/
 script/save_folder/
 script/sirius/
 script/test.ipynb
+script/metfrag
