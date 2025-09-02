@@ -4,7 +4,7 @@ import pandas as pd
 import joblib
 from converting_data_type import normalize_rank,ClippingTransformer
 
-def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df, score_df):
+def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df, score_df, top_n = 5):
     folder = os.path.join(buddy_folder,"detailed_summary_*.csv")
     buddy_files = glob.glob(folder)
     if not buddy_files:
@@ -23,7 +23,7 @@ def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df,
     )
     
     filtered_df = buddy_result[["filename", "Rank", "formula", "Estimated_FDR_2", "score_diff"]]
-    filtered_df = filtered_df[filtered_df["Rank"] <= 3]
+    filtered_df = filtered_df[filtered_df["Rank"] <= top_n]
     
     buddy_score_pipeline_path = os.path.join(machine_dir, "pipline_buddy_score.pkl")
     buddy_SD_pipeline_path = os.path.join(machine_dir, "pipline_buddy_score_diff.pkl")

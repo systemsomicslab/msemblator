@@ -4,7 +4,7 @@ import pandas as pd
 import joblib
 from converting_data_type import normalize_rank,ClippingTransformer
 
-def process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_df, score_df):
+def process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_df, score_df, top_n = 5):
     # Read Sirius output files
     sirius_paths = glob.glob(f"{sirius_folder}/*/formula_candidates.tsv")
     if not sirius_paths:
@@ -47,7 +47,7 @@ def process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_d
     score_pipeline = joblib.load(sirius_score_pipeline_path)
     SD_pipeline = joblib.load(sirius_SD_pipeline_path)
     
-    filtered_df = conbine_data.groupby('filename').head(3).copy()
+    filtered_df = conbine_data.groupby('filename').head(top_n).copy()
     filtered_df["Score_NZ"] = score_pipeline.transform(filtered_df[[score_column]])
     filtered_df["Score_NZ_diff"] = SD_pipeline.transform(filtered_df[["score_diff"]])
     filtered_df.rename(columns={"molecularFormula": "formula"}, inplace=True)

@@ -4,7 +4,7 @@ import pandas as pd
 import joblib
 from converting_data_type import normalize_rank,ClippingTransformer
 
-def process_msfinder_summary(msfinder_file_path, machine_dir, name_adduct_df, summary_df, score_df):
+def process_msfinder_summary(msfinder_file_path, machine_dir, name_adduct_df, summary_df, score_df, top_n = 5):
     # MS-FINDER summary
     file_paths = glob.glob(msfinder_file_path)
     if not file_paths:
@@ -18,7 +18,6 @@ def process_msfinder_summary(msfinder_file_path, machine_dir, name_adduct_df, su
     score_column = "Score" if "Score" in msfinder_output_combined.columns else "Formula score"
     msfinder_output_combined["score_diff"] = 0 
 
-    
     mask = (msfinder_output_combined["Rank"] + 1 == msfinder_output_combined["Rank"].shift(-1).fillna(0).astype(int))
     msfinder_output_combined.loc[mask, "score_diff"] = (
         msfinder_output_combined[score_column] - msfinder_output_combined[score_column].shift(-1)
@@ -27,7 +26,7 @@ def process_msfinder_summary(msfinder_file_path, machine_dir, name_adduct_df, su
     msfinder_output_combined.rename(columns={"name": "filename"}, inplace=True)
     msfinder_output_combined["score_diff"] = msfinder_output_combined["score_diff"].fillna(0)
     
-    filtered_df = msfinder_output_combined.groupby('filename').head(3).copy()
+    filtered_df = msfinder_output_combined.groupby('filename').head(top_n).copy()
     filtered_df = filtered_df.fillna('')
     filtered_df.rename(columns={"Precursor type": "adduct", "Rank": "rank", "Formula": "formula"}, inplace=True)
     

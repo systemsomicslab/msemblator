@@ -10,3 +10,10 @@ script/save_folder/
 script/sirius/
 script/test.ipynb
 script/metfrag
+script/formula_input.ipynb
+script/mz_summary.py
+script/score_only.py
+script/sirius.ipynb
+script/test.py
+script/test_formula_summary.py
+script/training_desparation.ipynb
