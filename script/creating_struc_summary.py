@@ -53,17 +53,15 @@ def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfra
     required_col = ['tool_name_metfrag', 'tool_name_msfinder', 'tool_name_sirius']
     for col in required_col:
         if col not in df_onehot.columns:
-            df_onehot[col] = 0    
+            df_onehot[col] = 0
     oh_cols = [c for c in df_onehot.columns if c.startswith("tool_name_")]
     df_onehot[oh_cols] = df_onehot[oh_cols].astype(int)
     df_onehot = df_onehot[['filename', 'adduct', 'rank', 'SMILES', 'normalization_Zscore', 'normalization_z_score_diff', 'normalized_rank'] + required_col]
     df_onehot = df_onehot[df_onehot['SMILES'].notna() & (df_onehot['SMILES'].str.strip() != '')].copy()
     
-
     score_calc_df = predict_and_append(df_onehot, machine_dir, adduct_column="adduct")
     convert_to_canonical_smiles(score_calc_df, 'SMILES')
     result_score_df = aggregate_probability_with_rank(score_calc_df)
     result_score_top_df = result_score_df[result_score_df["rank"]==1]
     summary_output_score = pd.merge(summary_smiles_df, result_score_top_df, on=['filename', 'adduct'], how='inner')
     return result_score_df, summary_output_score
-
