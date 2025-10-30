@@ -42,9 +42,12 @@ def process_msfinder_summary(msfinder_file_path, machine_dir, name_adduct_df, su
     
     msfinder_score_calc_df = filtered_df[["filename", "adduct", "rank", "formula", "Score_NZ", "Score_NZ_diff"]].copy()
     msfinder_score_calc_df["tool_name"] = "msfinder"
+    msfinder_score_calc_df["Used_tools"] = msfinder_score_calc_df["rank"].apply(lambda r: f"MS-FINDER_Rank:{r}")
+
     
     normalize_rank(msfinder_score_calc_df)  # Assuming normalize_rank is defined elsewhere
     msfinder_score_calc_df['adduct'] = msfinder_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
+
     
     filtered_df = filtered_df.astype(str)
     formula_pivot = filtered_df[["filename", "adduct", "rank", "formula"]].pivot(

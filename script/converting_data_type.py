@@ -24,7 +24,7 @@ class ClippingTransformer(BaseEstimator, TransformerMixin):
 
 def normalize_rank(df):
     scaler=MinMaxScaler()
-    df["normalized_rank"]=1-scaler.fit_transform(df[["rank"]])
+    df["normalized_rank"]= 1-scaler.fit_transform(df[["rank"]])
     
 
 def read_msp_file(file_path):
@@ -61,3 +61,13 @@ def generate_unique_filename(directory, filename):
         new_filename = f"{base_name}_{counter}{ext}"
         counter += 1
     return new_filename    
+
+def extract_used_tooks(row):
+    tools = []
+    if row.get("tool_name_buddy", 0) == 1:
+        tools.append(f"msbuddy(rank={int(row['rank'])})")
+    if row.get("tool_name_msfinder", 0) == 1:
+        tools.append(f"MS-FINDER(rank={int(row['rank'])})")
+    if row.get("tool_name_sirius", 0) == 1:
+        tools.append(f"SIRIUS(rank={int(row['rank'])})")
+    return ", ".join(tools)

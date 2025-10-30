@@ -54,6 +54,7 @@ def process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_d
     
     sirius_score_calc_df = filtered_df[["filename", "adduct", "rank", "formula", "Score_NZ", "Score_NZ_diff"]]
     sirius_score_calc_df["tool_name"] = "sirius"
+    sirius_score_calc_df['Used_tools'] = sirius_score_calc_df["rank"].apply(lambda r: f"SIRIUS_Rank:{r}")
     
     sirius_score_calc_df['adduct'] = sirius_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
     

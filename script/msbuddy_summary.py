@@ -40,6 +40,7 @@ def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df,
     
     buddy_score_calc_df = filtered_df[["filename", "adduct", "rank", "formula", "Score_NZ", "Score_NZ_diff"]]
     buddy_score_calc_df["tool_name"] = "buddy"
+    buddy_score_calc_df['Used_tools'] = buddy_score_calc_df["rank"].apply(lambda r: f"msbuddy_Rank:{r}")
     
     buddy_score_calc_df['adduct'] = buddy_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
     normalize_rank(buddy_score_calc_df)
