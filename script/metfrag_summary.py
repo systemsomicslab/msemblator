@@ -3,12 +3,12 @@ import glob
 import pandas as pd
 import joblib
 from functools import reduce
-from convert_struc_data_type import normalize_rank
+from convert_struc_data_type import normalize_rank_n
 from struc_score_normalization import ClippingTransformer
 
 def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df, 
                           summary_inchikey_df, summary_smiles_df, 
-                          class_summary_df):
+                          class_summary_df, smiles_score_df, top_n=5):
     """
     Processes MetFrag output files, normalizes scores, extracts top candidates, 
     and merges data with existing datasets.
@@ -30,7 +30,7 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
 
     if not file_paths:
         print(f"No MetFrag files found in {metfrag_folder}")
-        return summary_inchikey_df, summary_smiles_df, class_summary_df, None
+        return summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df
 
     data_frames = []
     for file in file_paths:
@@ -42,7 +42,7 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
             print(f"Error reading {file}: {e}")
 
     if not data_frames:
-        return summary_inchikey_df, summary_smiles_df, class_summary_df, None
+        return summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df
 
     # Combine all files into a single DataFrame
     combined_data = pd.concat(data_frames, ignore_index=True)
@@ -62,7 +62,7 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
     combined_data["Score_Difference"] = combined_data["Score_Difference"].fillna(0)
 
     # Select top 3 ranked candidates
-    filtered_df = combined_data.groupby('filename').head(3).copy()
+    filtered_df = combined_data.groupby('filename').head(top_n).copy()
     filtered_df = filtered_df.fillna('')
 
     # Load score normalization pipelines
@@ -79,9 +79,10 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
     # Prepare score calculation DataFrame
     metfrag_score_calc_df = filtered_df[["filename", "rank", "SMILES", "normalization_Zscore", "normalization_z_score_diff"]].copy()
     metfrag_score_calc_df["tool_name"] = "metfrag"
+    metfrag_score_calc_df["Used_tools"] = metfrag_score_calc_df["rank"].apply(lambda r: f"MetFrag_Rank:{r}")
 
     # Apply rank normalization function
-    normalize_rank(metfrag_score_calc_df)
+    normalize_rank_n(metfrag_score_calc_df)
 
     # Merge with adduct information
     metfrag_score_calc_df = metfrag_score_calc_df.merge(name_adduct_df, on="filename", how="outer")
@@ -113,4 +114,6 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
     # Append new classification data
     class_summary_df = pd.concat([class_summary_df, metfrag_class_data], ignore_index=True)
 
-    return metfrag_inchikey_df, metfrag_smiles_df, class_summary_df, metfrag_score_calc_df
+    smiles_score_df = pd.concat([smiles_score_df, metfrag_score_calc_df], ignore_index=True)
+
+    return metfrag_inchikey_df, metfrag_smiles_df, class_summary_df, smiles_score_df

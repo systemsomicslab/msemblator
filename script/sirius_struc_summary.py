@@ -2,12 +2,12 @@ import os
 import glob
 import pandas as pd
 import joblib
-from convert_struc_data_type import normalize_rank,smiles_list_to_inchikeys
+from convert_struc_data_type import normalize_rank_n,smiles_list_to_inchikeys
 from struc_score_normalization import ClippingTransformer
 
 def process_sirius_output(sirius_folder, machine_dir, name_adduct_df, 
                           summary_inchikey_df, summary_smiles_df, 
-                          class_summary_df, smiles_score_df):
+                          class_summary_df, smiles_score_df, top_n=3):
     """
     Processes SIRIUS output and generates updated InChIKey, SMILES, score, and classification data.
 
@@ -76,7 +76,7 @@ def process_sirius_output(sirius_folder, machine_dir, name_adduct_df,
     SD_pipeline = joblib.load(sirius_SD_pipeline_path)
 
     # Select top 3 ranked candidates
-    filtered_df = combined_data.groupby('filename').head(3).copy()
+    filtered_df = combined_data.groupby('filename').head(top_n).copy()
 
     # Normalize scores
     filtered_df["normalization_Zscore"] = score_pipeline.transform(filtered_df[[score_column]])
@@ -86,12 +86,13 @@ def process_sirius_output(sirius_folder, machine_dir, name_adduct_df,
     sirius_score_calc_df = filtered_df[["filename", "adduct", "rank", "smiles", "normalization_Zscore", "normalization_z_score_diff"]].copy()
     sirius_score_calc_df = sirius_score_calc_df.rename(columns={"smiles": "SMILES"})
     sirius_score_calc_df["tool_name"] = "sirius"
+    sirius_score_calc_df["Used_tools"] = sirius_score_calc_df["rank"].apply(lambda r: f"SIRIUS_Rank:{r}")
 
     # Map adducts from `name_adduct_df`
     sirius_score_calc_df['adduct'] = sirius_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
 
     # Apply rank normalization function
-    normalize_rank(sirius_score_calc_df)
+    normalize_rank_n(sirius_score_calc_df)
 
     # Convert SMILES to InChIKey
     filtered_df["InChIKey"] = smiles_list_to_inchikeys(filtered_df["smiles"])

@@ -2,12 +2,12 @@ import os
 import glob
 import pandas as pd
 import joblib
-from convert_struc_data_type import normalize_rank
+from convert_struc_data_type import normalize_rank_n
 from struc_score_normalization import ClippingTransformer
 
 def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df, 
                             summary_inchikey_df, summary_smiles_df, 
-                            class_summary_df, smiles_score_df):
+                            class_summary_df, smiles_score_df, top_n=3):
     """
     Processes MS-FINDER output and generates updated InChIKey, SMILES, score, and classification data.
 
@@ -26,27 +26,31 @@ def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df,
 
     # Retrieve MS-FINDER output files
     file_paths = glob.glob(os.path.join(msfinder_folder, "Structure result*.txt"))
+    if not file_paths:
+        # Return the original DataFrames unchanged if no files are found
+        return summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df
     msfinder_output_combined = pd.concat([pd.read_table(file_path) for file_path in file_paths], ignore_index=True)
 
     # Extract filename without extension
     msfinder_output_combined["filename"] = msfinder_output_combined["File name"].astype(str).apply(lambda x: x.split('.')[0])
     
     # Assign rank based on filename groups
-    msfinder_output_combined["rank"] = msfinder_output_combined.groupby("filename").cumcount() + 1
+    msfinder_output_combined["rank"] = (msfinder_output_combined.groupby("filename").cumcount() + 1).astype(int)
 
     # Determine the appropriate score column
     score_column = "Score" if "Score" in msfinder_output_combined.columns else "Total score"
     
     # Compute score difference
     msfinder_output_combined["score_diff"] = 0 
-    mask = (msfinder_output_combined["rank"] + 1 == msfinder_output_combined["rank"].shift(-1).fillna(0).astype(int))
+    next_rank = msfinder_output_combined["rank"].shift(-1)
+    mask = (msfinder_output_combined["rank"] + 1 == next_rank)
     msfinder_output_combined.loc[mask, "score_diff"] = (
         msfinder_output_combined[score_column] - msfinder_output_combined[score_column].shift(-1)
     )
     msfinder_output_combined["score_diff"] = msfinder_output_combined["score_diff"].fillna(0)
 
     # Select top 3 ranked candidates per filename
-    filtered_df = msfinder_output_combined.groupby('filename').head(3).copy()
+    filtered_df = msfinder_output_combined.groupby('filename').head(top_n).copy()
     filtered_df = filtered_df.fillna('')
     filtered_df.rename(columns={"Precursor type": "adduct"}, inplace=True)
 
@@ -64,9 +68,10 @@ def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df,
     # Prepare score calculation DataFrame
     msfinder_score_calc_df = filtered_df[["filename", "adduct", "rank", "SMILES", "normalization_Zscore", "normalization_z_score_diff"]].copy()
     msfinder_score_calc_df["tool_name"] = "msfinder"
+    msfinder_score_calc_df["Used_tools"] = msfinder_score_calc_df["rank"].apply(lambda r: f"MS-FINDER_Rank:{r}")
 
     # Apply rank normalization function (assumes `normalize_rank` is defined)
-    normalize_rank(msfinder_score_calc_df)
+    normalize_rank_n(msfinder_score_calc_df)
 
     # Map adducts from `name_adduct_df`
     msfinder_score_calc_df['adduct'] = msfinder_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])

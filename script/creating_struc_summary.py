@@ -9,10 +9,11 @@ from functools import reduce
 from struc_score_normalization import ClippingTransformer 
 from msfinder_struc_summary import process_msfinder_output
 from sirius_struc_summary import process_sirius_output
-from struc_score_calc import predict_and_append, aggregate_probability_with_rank
+from struc_score_calc import predict_and_append, aggregate_probability_with_rank, machine_input_generation
 from metfrag_summary import process_metfrag_output
+from functools import reduce
 
-def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfrag_folder):
+def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfrag_folder,top_n = 5):
     msp_data = read_msp_file(input_msp)
     compound_ionization_data = extract_compound_and_ionization(msp_data)
     summary_inchikey_df = pd.DataFrame(columns=['filename', 'adduct'])
@@ -29,39 +30,31 @@ def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfra
         name_adduct_df.at[idx, 'filename'] = compound
         name_adduct_df.at[idx, 'adduct'] = ionization
     # msfinder summary
-    msfinder_inchikey_df, msfinder_smiles_df, class_summary_df, smiles_score_df = process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df, summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df)
-    # sirius summary
-    sirius_inchikey_df, sirius_smiles_df, class_summary_df, smiles_score_df = process_sirius_output(sirius_folder, machine_dir, name_adduct_df, summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df)
-    # metfrag summary
-    metfrag_inchikey_df, metfrag_smiles_df, class_summary_df, metfrag_score_calc_df = process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df, summary_inchikey_df, summary_smiles_df, class_summary_df)
-    # Merge summary data across all tools
-    dataframes = [msfinder_smiles_df, sirius_smiles_df, metfrag_smiles_df]
-    summary_smiles_df = reduce(lambda left, right: pd.merge(left, right, on=["filename", "adduct"], how='outer'), dataframes)
-
-    inchikey_dataframes = [msfinder_inchikey_df, sirius_inchikey_df, metfrag_inchikey_df]
-    summary_inchikey_df = reduce(lambda left, right: pd.merge(left, right, on=["filename", "adduct"], how='outer'), inchikey_dataframes)
-    # Append MetFrag score data
-    smiles_score_df = pd.concat([smiles_score_df, metfrag_score_calc_df], ignore_index=True)
-
-    smiles_score_df["tool_name"] = (
-        smiles_score_df["tool_name"]
-        .astype("string")
-        .fillna("")        
-        .str.strip().str.lower()
-    )
-    df_onehot = pd.get_dummies(smiles_score_df, columns=['tool_name'])
-    required_col = ['tool_name_metfrag', 'tool_name_msfinder', 'tool_name_sirius']
-    for col in required_col:
-        if col not in df_onehot.columns:
-            df_onehot[col] = 0
-    oh_cols = [c for c in df_onehot.columns if c.startswith("tool_name_")]
-    df_onehot[oh_cols] = df_onehot[oh_cols].astype(int)
-    df_onehot = df_onehot[['filename', 'adduct', 'rank', 'SMILES', 'normalization_Zscore', 'normalization_z_score_diff', 'normalized_rank'] + required_col]
-    df_onehot = df_onehot[df_onehot['SMILES'].notna() & (df_onehot['SMILES'].str.strip() != '')].copy()
+    msfinder_inchikey_df, msfinder_smiles_df, class_summary_df, smiles_score_df = process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df, summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df,top_n)
     
-    score_calc_df = predict_and_append(df_onehot, machine_dir, adduct_column="adduct")
-    convert_to_canonical_smiles(score_calc_df, 'SMILES')
-    result_score_df = aggregate_probability_with_rank(score_calc_df)
+    msfinder_score = smiles_score_df
+    msfinder_score = msfinder_score.dropna(subset=["adduct"])
+    # sirius summary
+    sirius_inchikey_df, sirius_smiles_df, class_summary_df, smiles_score_df = process_sirius_output(sirius_folder, machine_dir, name_adduct_df, summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df,top_n)
+
+    sirius_score = smiles_score_df
+    sirius_score = sirius_score.dropna(subset=["adduct"])
+    # metfrag summary
+    metfrag_inchikey_df, metfrag_smiles_df, class_summary_df, smiles_score_df = process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df, summary_inchikey_df, summary_smiles_df, class_summary_df,smiles_score_df,top_n)
+    metfrag_score = smiles_score_df
+    metfrag_score = metfrag_score.dropna(subset=["adduct"])
+
+    print("Generating structural scoring input...")
+
+    score_df = machine_input_generation(smiles_score_df)
+    calced_score_df = predict_and_append(score_df, machine_dir, adduct_column="adduct")
+    convert_to_canonical_smiles(calced_score_df, 'SMILES')
+    result_score_df = aggregate_probability_with_rank(calced_score_df, top_n= 15)
+
+    # smiles output summary
+    dfs = [msfinder_smiles_df, sirius_smiles_df, metfrag_smiles_df]
+    summary_smiles_df = reduce(lambda left, right: pd.merge(left, right, on=["filename", "adduct"], how='outer'), dfs)
     result_score_top_df = result_score_df[result_score_df["rank"]==1]
     summary_output_score = pd.merge(summary_smiles_df, result_score_top_df, on=['filename', 'adduct'], how='inner')
+    
     return result_score_df, summary_output_score
