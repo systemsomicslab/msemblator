@@ -19,13 +19,13 @@ SiCheck=False
 IsTmsMeoxDerivative=False
 MinimumTmsCount=0
 MinimumMeoxCount=0
-FormulaMaximumReportNumber=10
+FormulaMaximumReportNumber=15
 
 #Structure finder parameters
 TreeDepth=2
 Ms2Tolerance=20
 RelativeAbundanceCutOff=1
-StructureMaximumReportNumber=10
+StructureMaximumReportNumber=15
 IsUseEiFragmentDB=False
 
 #Data source
@@ -64,7 +64,7 @@ IsUseUserDefinedSpectralDb=True
 UserDefinedSpectralDbFilePath=C:\Users\Hiroshi Tsugawa\Desktop\MsfinderConsoleApp test\MSMS-AllPublic-Curated-Neg-MfKit.msp
 SolventType=CH3COONH4
 MassRangeMin=50
-MassRangeMax=1700
+MassRangeMax=2000
 ScoreCutOffForSpectralMatch=80
 
 #Batch job
