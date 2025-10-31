@@ -1,5 +1,6 @@
 import pandas as pd
 from rdkit import Chem
+from rdkit.Chem import inchi
 from sklearn.preprocessing import MinMaxScaler
 
 # Function to read MSP file
@@ -96,9 +97,11 @@ def convert_to_canonical_smiles(df, column_name, new_column_name="Canonical_SMIL
 
 def normalize_rank(df):
     scaler=MinMaxScaler()
-    df["normalized_rank"]=scaler.fit_transform(df[["rank"]])
+    df["normalized_rank"]= scaler.fit_transform(df[["rank"]])
     
-
+def normalize_rank_n(df):
+    scaler=MinMaxScaler()
+    df["normalized_rank"]= 1 - scaler.fit_transform(df[["rank"]])
 
 def smiles_list_to_inchikeys(smiles_list):
     """
@@ -112,3 +115,25 @@ def smiles_list_to_inchikeys(smiles_list):
         else:
             inchikeys.append(None)
     return inchikeys
+
+def convert_to_shortinchikey(df, column_name, new_column_name="Short_InChIKey"):
+    """
+    Converts SMILES in a specified column of a DataFrame to Short InChIKeys using RDKit.
+    
+    """
+    def safe_convert(smiles):
+        try:
+            if pd.isna(smiles) or not isinstance(smiles, str) or smiles.strip() == "":
+                return None
+            
+            mol = Chem.MolFromSmiles(smiles)
+            if mol is not None:
+                inchikey = inchi.MolToInchiKey(mol)
+                return inchikey[:14]  # Short InChIKey (first 14 chars)
+            else:
+                return None
+        except Exception as e:
+            return None
+
+    df[new_column_name] = df[column_name].apply(safe_convert)
+    return df

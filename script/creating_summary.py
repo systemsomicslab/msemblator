@@ -38,15 +38,4 @@ def creating_output_summary(input_msp, sirius_folder, msfinder_file_path, buddy_
     summary_output = pd.merge(summary_output, buddy_formula_df, on=['filename', 'adduct'], how='inner')
     summary_output = pd.merge(summary_output, summary_score_top_df, on=['filename', 'adduct'], how='inner')
     
-
-    return summary_output, summary_score_df
-    
-
-
-
-    
-
-
-    
-
-        
+    return summary_score_df, summary_output
