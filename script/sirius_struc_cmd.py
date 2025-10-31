@@ -60,7 +60,7 @@ def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_s
         "--IsotopeSettings.filter=true",
         "--FormulaSearchDB=",
         "--Timeout.secondsPerTree=0",
-        "--FormulaSettings.enforced=HCNOP",
+        "--FormulaSettings.enforced=HCNOPSFClBrI",
         "--Timeout.secondsPerInstance=600",
         "--AdductSettings.detectable=[M-H]-,[M+H]+,[M-H2O-H]-,[M-H2O+H]+,[M-H4O2+H]+,[M+H3N+H]+",
         "--UseHeuristic.mzToUseHeuristicOnly=650",
