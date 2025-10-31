@@ -1,8 +1,8 @@
 #Formula finder parameters
 LewisAndSeniorCheck=True
-Ms1Tolerance=0.01
+Ms1Tolerance=10
 IsotopicAbundanceTolerance=20
-MassToleranceType=Da
+MassToleranceType=ppm
 CommonRange=TRUE
 ExtendedRange=FALSE
 ExtremeRange=FALSE
@@ -23,7 +23,7 @@ FormulaMaximumReportNumber=10
 
 #Structure finder parameters
 TreeDepth=2
-Ms2Tolerance=0.05
+Ms2Tolerance=20
 RelativeAbundanceCutOff=1
 StructureMaximumReportNumber=10
 IsUseEiFragmentDB=False
