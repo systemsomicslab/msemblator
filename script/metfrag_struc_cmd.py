@@ -58,10 +58,9 @@ def run_metfrag_command(metfrag_dir):
     # Run MetFrag for each parameter file
     with tqdm(total=len(parameter_files), desc="MetFrag Processing", unit="file") as pbar:
         for parameter_file in parameter_files:
-            cmd = ["java", "-jar", str(metfrag_jar), str(parameter_file)]
+            cmd = ["java", "-jar", metfrag_jar, parameter_file]
 
             try:
-                # Execute the MetFrag command via PowerShell
                 with subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
@@ -76,5 +75,5 @@ def run_metfrag_command(metfrag_dir):
 
             except Exception as e:
                 print(f"Exception occurred while running MetFrag for {parameter_file}: {e}")
-
-            pbar.update(1)
+            finally:
+                pbar.update(1)
