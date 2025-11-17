@@ -19,13 +19,13 @@ SiCheck=False
 IsTmsMeoxDerivative=False
 MinimumTmsCount=0
 MinimumMeoxCount=0
-FormulaMaximumReportNumber=15
+FormulaMaximumReportNumber=100
 
 #Structure finder parameters
 TreeDepth=2
 Ms2Tolerance=20
 RelativeAbundanceCutOff=1
-StructureMaximumReportNumber=15
+StructureMaximumReportNumber=100
 IsUseEiFragmentDB=False
 
 #Data source

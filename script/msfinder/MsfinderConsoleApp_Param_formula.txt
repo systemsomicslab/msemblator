@@ -19,7 +19,7 @@ SiCheck=False
 IsTmsMeoxDerivative=False
 MinimumTmsCount=0
 MinimumMeoxCount=0
-FormulaMaximumReportNumber=15
+FormulaMaximumReportNumber=100
 
 #Structure finder parameters
 TreeDepth=2
