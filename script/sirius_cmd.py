@@ -55,7 +55,7 @@ def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path):
         "--IsotopeSettings.filter=true",
         "--FormulaSearchDB=",
         "--Timeout.secondsPerTree=100",
-        "--FormulaSettings.enforced=HCNOP",
+        "--FormulaSettings.enforced=HCNOPSFClBrI",
         "--Timeout.secondsPerInstance=100",
         "--AdductSettings.detectable=[[M+Na]+,[M-H4O2+H]+,[M+H3N+H]+,[M+Cl]-,[M-H]-,[M+H]+,[M-H2O+H]+,[M-H2O-H]-]",
         "--UseHeuristic.mzToUseHeuristicOnly=650",
