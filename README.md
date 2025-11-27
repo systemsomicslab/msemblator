@@ -1,4 +1,4 @@
-# Msemblator: A reliable annotation tool for metabolomics data
+# MS-emblator: A reliable annotation tool for metabolomics data
 ## Overview
 Msemblator is a metabolomics annotation tool that integrates results from multiple in-silico annotation tools and applies ensemble learning-based scoring to provide highly reliable annotations.
 
