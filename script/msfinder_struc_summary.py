@@ -2,7 +2,7 @@ import os
 import glob
 import pandas as pd
 import joblib
-from convert_struc_data_type import normalize_rank_n
+from convert_struc_data_type import normalize_rank_score as normalize_rank_n
 from struc_score_normalization import ClippingTransformer
 
 def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df, 
@@ -77,10 +77,12 @@ def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df,
     msfinder_score_calc_df['adduct'] = msfinder_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
 
     # Pivot InChIKey and SMILES data
+    filtered_df['rank'] = filtered_df['rank'].astype(int)
+    top5_smiles_df = filtered_df[filtered_df['rank'] <= 5]
     filtered_df = filtered_df.astype(str)
 
     inchikey_pivot = filtered_df.pivot(index=["filename", "adduct"], columns=["rank"], values=["InChIKey"])
-    smiles_pivot = filtered_df.pivot(index=["filename", "adduct"], columns=["rank"], values=["SMILES"])
+    smiles_pivot = top5_smiles_df.pivot(index=["filename", "adduct"], columns=["rank"], values=["SMILES"])
 
     inchikey_pivot.columns = [f'msfinder_structure_{col[1]}' for col in inchikey_pivot.columns.values]
     smiles_pivot.columns = [f'msfinder_structure_{col[1]}' for col in smiles_pivot.columns.values]

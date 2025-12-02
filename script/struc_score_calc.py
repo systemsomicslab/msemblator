@@ -23,6 +23,12 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
         "normalized_rank_metfrag",
         "normalized_rank_msfinder",
         "normalized_rank_sirius",
+        'adduct_MplusHplus',
+        'adduct_MplusNaplus',
+        'adduct_MplusNH4plus',
+        'adduct_MminusHminus',
+        'adduct_MplusClminus',
+        'adduct_MplusFAminusHminus'
         ]
 
     # Ensure that all required feature columns exist, filling missing ones with 0
@@ -32,12 +38,12 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
     df_original = df.copy()
 
     # Load the general model that applies to all adducts
-    model_all_path = os.path.join(machine_dir, "random_forest_final_all.pkl")
+    model_all_path = os.path.join(machine_dir, "xgboost_final_all.pkl")
     model_all = joblib.load(model_all_path)
 
     # Extract available adduct models from the directory
     trained_adducts = [
-        file.split("_")[-2].replace(".pkl", "") for file in os.listdir(machine_dir) if "random_forest_" in file
+        file.split("_")[-2].replace(".pkl", "") for file in os.listdir(machine_dir) if "xgboost_" in file
     ]
 
     predicted_probs = []
@@ -47,7 +53,7 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
         adduct = str(row.get(adduct_column, "all")).replace("+", "plus").replace("-", "minus") 
 
         # Select the specific adduct model if available; otherwise, use the general model
-        model_path = os.path.join(machine_dir, f"random_forest_{adduct}_final.pkl") if adduct in trained_adducts else model_all_path
+        model_path = os.path.join(machine_dir, f"xgboost_{adduct}_final.pkl") if adduct in trained_adducts else model_all_path
 
         # Load the selected model
         logistic_model = joblib.load(model_path)
@@ -94,6 +100,7 @@ def aggregate_probability_with_rank(df: pd.DataFrame, top_n: int = 3) -> pd.Data
     )
     grouped["rank"] = grouped.groupby("filename")["confidence_score_sum"] \
                              .rank(method="first", ascending=False).astype(int)
+    grouped = grouped.sort_values(["filename", "rank"], ascending=[True, True])
     top = grouped[grouped["rank"] <= top_n]
 
     merged = df.merge(
@@ -112,6 +119,7 @@ def aggregate_probability_with_rank(df: pd.DataFrame, top_n: int = 3) -> pd.Data
 
 
 def machine_input_generation(df):
+    adduct_list = ['[M+H]+', '[M+Na]+', '[M+NH4]+', '[M-H]-', '[M+Cl]-', '[M+FA-H]-']
     # Convert SMILES to Short InChIKey
     convert_to_shortinchikey(df, "SMILES", new_column_name="Short_InChIKey")
 
@@ -153,4 +161,14 @@ def machine_input_generation(df):
     wide_df = pd.merge(wide_df, smiles_df, on="Short_InChIKey", how="left")
     wide_df = wide_df.merge(used_tools_df, on=base_columns, how="left")
 
+    for ad in adduct_list:
+        ad_norm = ad.replace("+", "plus").replace("-", "minus").replace("[", "").replace("]", "")
+        col_name = f"adduct_{ad_norm}"
+        
+        wide_df[col_name] = (
+            wide_df['adduct']
+            .str.replace("+", "plus", regex=False)
+            .str.replace("-", "minus", regex=False)
+            == ad_norm
+        ).astype(int)   
     return wide_df

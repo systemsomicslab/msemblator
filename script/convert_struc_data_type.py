@@ -2,6 +2,7 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import inchi
 from sklearn.preprocessing import MinMaxScaler
+import numpy as np
 
 # Function to read MSP file
 def read_msp_file(file_path):
@@ -102,6 +103,9 @@ def normalize_rank(df):
 def normalize_rank_n(df):
     scaler=MinMaxScaler()
     df["normalized_rank"]= 1 - scaler.fit_transform(df[["rank"]])
+
+def normalize_rank_score(df):
+    df["normalized_rank"] = 1 - np.log(df["rank"]) / (np.log(df["rank"].max()+1))
 
 def smiles_list_to_inchikeys(smiles_list):
     """

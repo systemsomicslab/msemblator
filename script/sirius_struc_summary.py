@@ -2,7 +2,7 @@ import os
 import glob
 import pandas as pd
 import joblib
-from convert_struc_data_type import normalize_rank_n,smiles_list_to_inchikeys
+from convert_struc_data_type import normalize_rank_score as normalize_rank_n, smiles_list_to_inchikeys
 from struc_score_normalization import ClippingTransformer
 
 def process_sirius_output(sirius_folder, machine_dir, name_adduct_df, 
@@ -96,11 +96,13 @@ def process_sirius_output(sirius_folder, machine_dir, name_adduct_df,
 
     # Convert SMILES to InChIKey
     filtered_df["InChIKey"] = smiles_list_to_inchikeys(filtered_df["smiles"])
+    filtered_df['rank'] = filtered_df['rank'].astype(int)
+    top5_smiles_df = filtered_df[filtered_df['rank'] <= 5]
     filtered_df = filtered_df.astype(str).fillna('')
 
     # Pivot InChIKey and SMILES data
     inchikey_pivot = filtered_df.pivot(index=["filename"], columns=["rank"], values=["InChIKey"])
-    smiles_pivot = filtered_df.pivot(index=["filename"], columns=["rank"], values=["smiles"])
+    smiles_pivot = top5_smiles_df.pivot(index=["filename"], columns=["rank"], values=["smiles"])
 
     inchikey_pivot.columns = [f'sirius_structure_{col[1]}' for col in inchikey_pivot.columns.values]
     smiles_pivot.columns = [f'sirius_structure_{col[1]}' for col in smiles_pivot.columns.values]

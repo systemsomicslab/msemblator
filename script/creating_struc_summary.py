@@ -13,7 +13,7 @@ from struc_score_calc import predict_and_append, aggregate_probability_with_rank
 from metfrag_summary import process_metfrag_output
 from functools import reduce
 
-def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfrag_folder,top_n = 5):
+def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfrag_folder,top_n = 100, summary_n = 5):
     msp_data = read_msp_file(input_msp)
     compound_ionization_data = extract_compound_and_ionization(msp_data)
     summary_inchikey_df = pd.DataFrame(columns=['filename', 'adduct'])
@@ -49,7 +49,7 @@ def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfra
     score_df = machine_input_generation(smiles_score_df)
     calced_score_df = predict_and_append(score_df, machine_dir, adduct_column="adduct")
     convert_to_canonical_smiles(calced_score_df, 'SMILES')
-    result_score_df = aggregate_probability_with_rank(calced_score_df, top_n= 15)
+    result_score_df = aggregate_probability_with_rank(calced_score_df, summary_n)
 
     # smiles output summary
     dfs = [msfinder_smiles_df, sirius_smiles_df, metfrag_smiles_df]

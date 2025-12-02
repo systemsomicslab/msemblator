@@ -3,7 +3,7 @@ import glob
 import pandas as pd
 import joblib
 from functools import reduce
-from convert_struc_data_type import normalize_rank_n
+from convert_struc_data_type import normalize_rank_score as normalize_rank_n
 from struc_score_normalization import ClippingTransformer
 
 def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df, 
@@ -42,6 +42,7 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
             print(f"Error reading {file}: {e}")
 
     if not data_frames:
+        print(f"No valid MetFrag data found in {metfrag_folder}")
         return summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df
 
     # Combine all files into a single DataFrame
@@ -89,11 +90,13 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
 
     # Convert filenames
     filtered_df["filename"] = filtered_df["filename"].apply(lambda x: x.split('.')[0] if isinstance(x, str) else None)
+    filtered_df['rank'] = filtered_df['rank'].astype(int)
+    top5_smiles_df = filtered_df[filtered_df['rank'] <= 5]
     filtered_df = filtered_df.astype(str).fillna('')
 
     # Pivot InChIKey and SMILES data
     inchikey_pivot = filtered_df.pivot(index=["filename"], columns=["rank"], values=["InChIKey"])
-    smiles_pivot = filtered_df.pivot(index=["filename"], columns=["rank"], values=["SMILES"])
+    smiles_pivot = top5_smiles_df.pivot(index=["filename"], columns=["rank"], values=["SMILES"])
 
     inchikey_pivot.columns = [f'metfrag_structure_{col[1]}' for col in inchikey_pivot.columns.values]
     smiles_pivot.columns = [f'metfrag_structure_{col[1]}' for col in smiles_pivot.columns.values]
