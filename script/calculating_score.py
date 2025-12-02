@@ -2,47 +2,6 @@ import os
 import joblib
 import pandas as pd
 
-def aggregate_probability_with_rank(df: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
-    """
-    Aggregate confidence scores per (filename, formula), rank them, and report tools that found each formula.
-
-    Parameters:
-        df (pd.DataFrame): Input data. Must include:
-            - 'filename', 'formula', 'confidence_score', 'adduct'
-            - 'rank' (tool-specific rank)
-            - 'tool_name_buddy', 'tool_name_msfinder', 'tool_name_sirius'
-        top_n (int): Number of top formulas to retain per filename.
-
-    Returns:
-        pd.DataFrame: Summary with confidence_score_sum, rank, and Used_Tool per formula.
-    """
-
-    # Aggregate confidence scores
-    grouped = df.groupby(["filename", "formula"], as_index=False).agg(
-        confidence_score_sum=("confidence_score", "sum")
-    )
-    grouped["rank"] = grouped.groupby("filename")["confidence_score_sum"] \
-                             .rank(method="first", ascending=False).astype(int)
-
-    # Keep top-N formulas per file
-    top = grouped[grouped["rank"] <= top_n]
-
-    # Merge back into original to collect all tool-specific rows
-    merged = df.merge(
-        top.rename(columns={"rank": "agg_rank"})[["filename", "formula", "agg_rank", "confidence_score_sum"]],
-        on=["filename", "formula"],
-        how="inner"
-    )
-
-    # Final summary table
-    summary = merged.groupby(["filename", "formula", "agg_rank"]).agg(
-        adduct=("adduct", "first"),
-        confidence_score_sum=("confidence_score_sum", "first"),
-        Used_Tool=("Used_tools", lambda x: ','.join(sorted(set(','.join(x).split(',')))))
-    ).reset_index().rename(columns={"agg_rank": "rank"})
-
-    return summary
-
 def predict_and_append(df, machine_dir, adduct_column="adduct"):
     """
     For the given DataFrame, this function uses the appropriate model (adduct-specific or the default 'all' model)
@@ -61,7 +20,14 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
         "Score_NZ_diff_sirius",
         'normalized_rank_buddy',
         'normalized_rank_msfinder',
-        'normalized_rank_sirius'
+        'normalized_rank_sirius',
+        'adduct_MplusHplus',
+        'adduct_MplusNaplus',
+        'adduct_MplusNH4plus',
+        'adduct_MminusHminus',
+        'adduct_MplusClminus',
+        'adduct_MplusFAminusHminus'
+        
     ]
 
     # Create a copy of the original DataFrame.
@@ -75,13 +41,13 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
     df_predict[feature_columns] = df_predict[feature_columns].fillna(0)
 
     # Load the default 'all' model.
-    model_all_path = os.path.join(machine_dir, "xgboost_final_all.pkl")
+    model_all_path = os.path.join(machine_dir, "random_forest_final_all.pkl")
     model_all = joblib.load(model_all_path)
 
     # Preload all available adduct-specific models (excluding the 'all' model) into a dictionary.
     model_dict = {}
     for filename in os.listdir(machine_dir):
-        if "xgboost_" in filename and filename != "xgboost_final_all.pkl":
+        if "random_forest_" in filename and filename != "random_forest_final_all.pkl":
             tokens = filename.split("_")
             adduct_name = tokens[-2].replace(".pkl", "")
             model_path = os.path.join(machine_dir, filename)
@@ -102,6 +68,46 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
 
     return df_original
 
+def aggregate_probability_with_rank(df: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
+    """
+    Aggregate confidence scores per (filename, formula), rank them, and report tools that found each formula.
+
+    Parameters:
+        df (pd.DataFrame): Input data. Must include:
+            - 'filename', 'formula', 'confidence_score', 'adduct'
+            - 'rank' (tool-specific rank)
+            - 'tool_name_buddy', 'tool_name_msfinder', 'tool_name_sirius'
+        top_n (int): Number of top formulas to retain per filename.
+
+    Returns:
+        pd.DataFrame: Summary with confidence_score, rank, and Used_Tool per formula.
+    """
+
+    df["rank"] = df.groupby("filename")["confidence_score"] \
+                             .rank(method="first", ascending=False).astype(int)
+    df = df.sort_values(["filename", "rank"], ascending=[True, True])
+
+    # Keep top-N formulas per file
+    top = df[df["rank"] <= top_n].copy()
+    top = top.rename(columns={"rank": "agg_rank",
+                              "confidence_score": "agg_confidence_score"})
+
+    # Merge back into original to collect all tool-specific rows
+    merged = df.merge(
+        top[["filename", "formula", "agg_rank", "agg_confidence_score"]],
+        on=["filename", "formula"],
+        how="inner",
+    )
+
+    # Final summary table
+    summary = merged.groupby(["filename", "formula", "agg_rank"]).agg(
+        adduct=("adduct", "first"),
+        confidence_score_sum=("agg_confidence_score", "first"),
+        Used_Tool=("Used_tools", lambda x: ','.join(sorted(set(','.join(x).split(',')))))
+    ).reset_index().rename(columns={"agg_rank": "rank"})
+
+    return summary
+
 def formula_machine_input(df):
     for tool in ['msfinder', 'sirius', 'msbuddy']:
         tool_mask = df['tool_name'] == tool
@@ -118,6 +124,8 @@ def formula_machine_input(df):
         values = score_cols,
         aggfunc='max'
         )
+    
+    # flatten MultiIndex columns
     wide_df.columns = [f'{score}_{tool}' for score, tool in wide_df.columns]
     wide_df = wide_df.reset_index()
     wide_df = wide_df.fillna(0)
