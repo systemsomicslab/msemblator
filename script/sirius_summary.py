@@ -60,8 +60,10 @@ def process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_d
     
     normalize_rank(sirius_score_calc_df)  # Assuming normalize_rank is defined elsewhere
     
+    filtered_df['rank'] = filtered_df['rank'].astype(int)
+    top5_df = filtered_df[filtered_df['rank'] <= 5]
     filtered_df = filtered_df.astype(str).fillna('')
-    formula_pivot = filtered_df[["filename", "adduct", "rank", "formula"]].pivot(
+    formula_pivot = top5_df[["filename", "adduct", "rank", "formula"]].pivot(
         index=["filename"], 
         columns=["rank"], 
         values=["formula"]

@@ -2,7 +2,7 @@ import os
 import glob
 import pandas as pd
 import joblib
-from converting_data_type import normalize_rank,ClippingTransformer
+from converting_data_type import normalize_rank, ClippingTransformer
 
 def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df, score_df, top_n = 5):
     folder = os.path.join(buddy_folder,"detailed_summary_*.csv")
@@ -47,8 +47,10 @@ def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df,
     
     filtered_df = filtered_df.astype(str).fillna('')
     filtered_df = filtered_df.drop_duplicates(subset=["filename", "rank"])
+    filtered_df["rank"] = filtered_df["rank"].astype(int)
+    top5_formula_df = filtered_df[filtered_df['rank'] <= 5]
     
-    formula_pivot = filtered_df[["filename", "adduct", "rank", "formula"]].pivot(
+    formula_pivot = top5_formula_df[["filename", "adduct", "rank", "formula"]].pivot(
         index=["filename"], 
         columns=["rank"], 
         values=["formula"]

@@ -48,9 +48,10 @@ def process_msfinder_summary(msfinder_file_path, machine_dir, name_adduct_df, su
     normalize_rank(msfinder_score_calc_df)  # Assuming normalize_rank is defined elsewhere
     msfinder_score_calc_df['adduct'] = msfinder_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
 
-    
+    filtered_df['rank'] = filtered_df['rank'].astype(int)
+    top5_df = filtered_df[filtered_df['rank'] <= 5]
     filtered_df = filtered_df.astype(str)
-    formula_pivot = filtered_df[["filename", "adduct", "rank", "formula"]].pivot(
+    formula_pivot = top5_df[["filename", "adduct", "rank", "formula"]].pivot(
         index=["filename", "adduct"], 
         columns=["rank"], 
         values=["formula"]
