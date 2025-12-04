@@ -52,7 +52,52 @@ Msemblator generates two output files:
 This structured approach ensures that users obtain high-confidence annotations from their metabolomics data.  
 
 ## Parameter tuning  
-Msemblator provides the flexibility to adjust parameters for the integrated annotation tools (SIRIUS, MS-FINDER, MetFrag, etc.) if needed, allowing users to fine-tune the workflow for specific datasets or experimental goals. Below are the main components where parameter tuning is supported.  
+Msemblator allows users to flexibly adjust parameters for each integrated annotation tool (SIRIUS, MS-FINDER, MetFrag, etc.).
+**Most settings should be configured by editing the provided parameter files**, ensuring that the workflow can be customized without modifying the code.
+For advanced features that cannot be configured via parameter files, the corresponding command scripts may be edited directly.
+
+```yaml parameter file
+formula_prediction:
+  msfinder:
+    MS1_ppm: 10
+    MS2_ppm: 20
+    halogen: True #True or False
+
+  sirius:
+  #  possible options: orbitrap, qtof
+    MS1: qtof
+    MS2_ppm: 20
+    halogen: True #True or False
+
+  msbuddy:
+    MS1_ppm: 10
+    MS2_ppm: 20
+    halogen: True #True or False
+
+  msemblator_output_records: 100
+
+structure_prediction:
+  msfinder:
+    MS1_ppm: 10
+    MS2_ppm: 20
+    halogen: True #True or False
+
+  sirius:
+  #  possible options: orbitrap, qtof
+    MS1: qtof
+    MS2_ppm: 20
+
+  metfrag:
+  # MetFrag uses whichever tolerance is larger: absolute (Da) or relative (ppm)
+    MS2_Da: 0.01
+    MS2_ppm: 20
+
+  msemblator_output_records: 100
+```
+
+
+
+Below is a guideline for where parameters should be set.
 
 ### MetFrag  
 MetFrag settings can be modified via the following file:  
@@ -97,7 +142,7 @@ python --version
 ### 2. Install required python modules
 Install required Python packages using pip:
 ``` PowerShell
-cd msemblator 
+cd msemblator/script 
 pip install -r requirements.txt
 ```
 
