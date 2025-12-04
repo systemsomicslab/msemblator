@@ -16,15 +16,12 @@ def sanitize_filename(name, max_length=150):
 
 def format_msp_entry(name, content):
     """
-    Format the MSP entry to match the desired structure and fill missing values.
-
-    Args:
-        name (str): Compound name.
-        content (list of str): List of lines in the compound section.
-
-    Returns:
-        str: Formatted MSP entry as a string.
+    Format the MSP entry to a clean structure.
+    - Ensures only one NAME field
+    - Ensures only one Num Peaks field
+    - Fills missing required fields with defaults
     """
+
     required_fields = {
         "PRECURSORMZ": "",
         "PRECURSORTYPE": "",
@@ -38,6 +35,7 @@ def format_msp_entry(name, content):
     }
 
     formatted_entry = []
+    # Always start with a clean NAME field
     formatted_entry.append(f"NAME: {name}")
 
     peaks = []
@@ -46,23 +44,33 @@ def format_msp_entry(name, content):
             key, value = line.split(":", 1)
             key = key.strip().upper()
             value = value.strip()
+
+            # Skip original NAME and Num Peaks (we will re-add them later)
+            if key in ["NAME", "NUM PEAKS"]:
+                continue
+
             formatted_entry.append(f"{key}: {value}")
+
+            # Update required fields if found in the block
             if key in required_fields:
-                required_fields[key] = value  # Override default values if present
-        elif line.strip():  # Handling peak data
+                required_fields[key] = value
+
+        elif line.strip():  
+            # Any line without ":" is assumed to be peak data
             peaks.append(line.strip())
 
-    # Ensure all required fields are included
+    # Ensure all required fields are present
     for key, default_value in required_fields.items():
-        if not any(key in entry for entry in formatted_entry):
+        if not any(entry.startswith(f"{key}:") for entry in formatted_entry):
             formatted_entry.append(f"{key}: {default_value}")
 
-    # Adding peaks section
+    # Add the Num Peaks line followed by the actual peak data
     if peaks:
         formatted_entry.append("Num Peaks: " + str(len(peaks)))
         formatted_entry.extend(peaks)
 
     return "\n".join(formatted_entry)
+
 
 def read_msp(file_path):
     """

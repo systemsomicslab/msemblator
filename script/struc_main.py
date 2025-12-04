@@ -5,6 +5,7 @@ import glob
 import pandas as pd
 import time
 import logging
+import yaml
 from metfrag_file_processing import creat_metfrag_file
 from metfrag_struc_cmd import run_metfrag_command
 from splitting_msp import read_msp
@@ -38,6 +39,12 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     sirius_path = os.path.join(sirius_directory, "sirius.exe")
     structure_search_db = os.path.join(sirius_directory, "database")
     machine_dir = os.path.join(current_dir, "structure_scoring_model")
+    parameter_path = os.path.join(current_dir, 'msemblator_parameter_file.yaml')
+    def load_parameters(param_path):
+        with open(param_path, 'r') as file:
+            params = yaml.safe_load(file)
+        return params
+    config = load_parameters(parameter_path)
 
     # Clear required folders.
     metfrag_exclude_items = ["example_paramater.txt", "library_psv_v2.txt", "MetFragCommandLine-2.5.0.jar"]
@@ -58,7 +65,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
         ms_file = convert_msp_file_to_ms(input_msp)
         save_file(sirius_inputdir, ms_file)
         sirius_login(sirius_directory, username, password)
-        run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_search_db)
+        run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_search_db, config)
     except Exception as e:
         logging.error(f"SIRIUS processing failed: {e}")
     sirius_end_time = time.time()
@@ -68,6 +75,17 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     # MetFrag Processing
     metfrag_start_time = time.time()
     print("MetFrag processing start")
+    with open(os.path.join(metfrag_paramater_dir, "example_paramater.txt"), 'r') as file:
+        lines = file.readlines()
+    with open(os.path.join(metfrag_paramater_dir, "example_paramater.txt"), 'w') as file:
+        for line in lines:
+            if line.startswith('FragmentPeakMatchAbsoluteMassDeviation'):
+                line = f'FragmentPeakMatchAbsoluteMassDeviation = {config["structure_prediction"]["metfrag"]["MS2_Da"]}\n'
+            elif line.startswith('FragmentPeakMatchRelativeMassDeviation'):
+                line = f'FragmentPeakMatchRelativeMassDeviation = {config["structure_prediction"]["metfrag"]["MS2_ppm"]}\n'
+            file.write(line)
+    
+
     try:
         creat_metfrag_file(
             input_msp, 
@@ -89,7 +107,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
         split_data = read_msp(input_msp)
         for filename, content in split_data.items():
             save_file(os.path.join(msp_folder, f"{filename}.msp"), content)
-        run_msfinder(msfinder_directory, msp_folder, msfinder_folder, method_path, library_path)
+        run_msfinder(msfinder_directory, msp_folder, msfinder_folder, method_path, library_path, config)
     except Exception as e:
         logging.error(f"MSFinder processing failed: {e}")
     print("MS-FINDER processing complete")
@@ -101,7 +119,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     print("Generating output files...")
     try:
         result_score_df, summary_smiles_df = struc_summary(
-            input_msp, msfinder_folder, machine_dir, sirius_outputdir, metfrag_paramater_dir
+            input_msp, msfinder_folder, machine_dir, sirius_outputdir, metfrag_paramater_dir, top_n=100, summary_n=config['structure_prediction']['msemblator_output_records']
         )
         result_score_df = pd.merge(name_df, result_score_df, left_on = "Updated_NAME", right_on = "filename")
         result_score_df.drop(columns=["Updated_NAME", "filename"], inplace=True)
@@ -121,4 +139,3 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     summary_end_time = time.time()
     logging.info(f"Summary generation time: {summary_end_time - summary_start_time:.2f} seconds")
     print("structure elucidation complete")
-    

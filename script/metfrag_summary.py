@@ -3,12 +3,12 @@ import glob
 import pandas as pd
 import joblib
 from functools import reduce
-from convert_struc_data_type import normalize_rank_score as normalize_rank_n
+from convert_struc_data_type import normalize_rank_score
 from struc_score_normalization import ClippingTransformer
 
 def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df, 
                           summary_inchikey_df, summary_smiles_df, 
-                          class_summary_df, smiles_score_df, top_n=5):
+                          class_summary_df, smiles_score_df, top_n):
     """
     Processes MetFrag output files, normalizes scores, extracts top candidates, 
     and merges data with existing datasets.
@@ -83,7 +83,7 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
     metfrag_score_calc_df["Used_tools"] = metfrag_score_calc_df["rank"].apply(lambda r: f"MetFrag_Rank:{r}")
 
     # Apply rank normalization function
-    normalize_rank_n(metfrag_score_calc_df)
+    normalize_rank_score(metfrag_score_calc_df)
 
     # Merge with adduct information
     metfrag_score_calc_df = metfrag_score_calc_df.merge(name_adduct_df, on="filename", how="outer")

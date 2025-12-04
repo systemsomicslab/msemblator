@@ -2,7 +2,7 @@ import os
 import glob
 import pandas as pd
 import joblib
-from convert_struc_data_type import normalize_rank_score as normalize_rank_n, smiles_list_to_inchikeys
+from convert_struc_data_type import normalize_rank_score, smiles_list_to_inchikeys
 from struc_score_normalization import ClippingTransformer
 
 def process_sirius_output(sirius_folder, machine_dir, name_adduct_df, 
@@ -92,7 +92,7 @@ def process_sirius_output(sirius_folder, machine_dir, name_adduct_df,
     sirius_score_calc_df['adduct'] = sirius_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
 
     # Apply rank normalization function
-    normalize_rank_n(sirius_score_calc_df)
+    normalize_rank_score(sirius_score_calc_df)
 
     # Convert SMILES to InChIKey
     filtered_df["InChIKey"] = smiles_list_to_inchikeys(filtered_df["smiles"])

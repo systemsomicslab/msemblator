@@ -55,15 +55,32 @@ def smiles_to_inchikeys(smiles_series, msfinder_library):
     # Return as DataFrame with both keys
     return pd.DataFrame({'shortInChiKey': short_inchikey_series, 'InChIKey': full_inchikey_series})
 
-def modify_msfinder_config_in_place(method_path, librarypath):
+def modify_msfinder_config_in_place(method_path, librarypath, config):
+    ms1_ppm = config['formula_prediction']['msfinder']['MS1_ppm']
+    ms2_ppm = config['formula_prediction']['msfinder']['MS2_ppm']
+    elements = config['formula_prediction']['msfinder']['halogen']
+    replace_map = {
+        "Ms1Tolerance=": f"Ms1Tolerance={ms1_ppm}\n",
+        "Ms2Tolerance=": f"Ms2Tolerance={ms2_ppm}\n",
+        "Fcheck=": f"Fcheck={str(elements)}\n",
+        "ClCheck=": f"ClCheck={str(elements)}\n",
+        "BrCheck=": f"BrCheck={str(elements)}\n",
+        "Icheck=": f"Icheck={str(elements)}\n",
+        "LibrarySearchDBFilePath=": f"LibrarySearchDBFilePath={librarypath}\n"
+    }
     with open(method_path, 'r') as file:
         lines = file.readlines()
-    
     with open(method_path, 'w') as file:
         for line in lines:
-            if line.startswith("UserDefinedDbFilePath="):
-                line = f"UserDefinedDbFilePath={librarypath}\n"
-            file.write(line)
+            replaced = False
+            for key, value in replace_map.items():
+                if line.startswith(key):
+                    file.write(value)
+                    replaced = True
+                    break
+            if not replaced:
+                file.write(line)
+
 
 def convert_to_canonical_smiles(df, column_name, new_column_name="Canonical_SMILES"):
     """

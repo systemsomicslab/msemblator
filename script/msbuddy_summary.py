@@ -2,7 +2,8 @@ import os
 import glob
 import pandas as pd
 import joblib
-from converting_data_type import normalize_rank, ClippingTransformer
+from converting_data_type import ClippingTransformer
+from convert_struc_data_type import normalize_rank_score
 
 def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df, score_df, top_n = 5):
     folder = os.path.join(buddy_folder,"detailed_summary_*.csv")
@@ -43,7 +44,7 @@ def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df,
     buddy_score_calc_df['Used_tools'] = buddy_score_calc_df["rank"].apply(lambda r: f"msbuddy_Rank:{r}")
     
     buddy_score_calc_df['adduct'] = buddy_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
-    normalize_rank(buddy_score_calc_df)
+    normalize_rank_score(buddy_score_calc_df)
     
     filtered_df = filtered_df.astype(str).fillna('')
     filtered_df = filtered_df.drop_duplicates(subset=["filename", "rank"])

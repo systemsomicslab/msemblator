@@ -36,7 +36,7 @@ def sirius_login(sirius_directory, username, password):
         child.close()
 
 
-def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path):
+def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path, config):
     """
     Runs the Sirius structure prediction tool with updated parameters.
 
@@ -46,6 +46,17 @@ def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path):
         sirius_path (str): Path to the Sirius executable.
         structure_search_db (str): Path to the structure search database.
     """
+    ms1 = config['formula_prediction']['sirius']['MS1']
+    ms2 = config['formula_prediction']['sirius']['MS2_ppm']
+    atoms = config['formula_prediction']['sirius']['halogen']
+    if atoms == True:
+        atoms_detectable = "B,Cl,Br,Se,S"
+        atoms_enforced = "HCNOF[5]PI[5]"
+    else:
+        atoms_detectable = "B,Se,S"
+        atoms_enforced = "HCNOP"
+
+
     command = [
         sirius_path,  # Path to the executable
         "-i", sirius_inputdir,  # Input file path
@@ -55,16 +66,16 @@ def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path):
         "--IsotopeSettings.filter=true",
         "--FormulaSearchDB=",
         "--Timeout.secondsPerTree=100",
-        "--FormulaSettings.enforced=HCNOPS",
+        f"--FormulaSettings.enforced={atoms_enforced}",
         "--Timeout.secondsPerInstance=100",
         "--AdductSettings.detectable=[[M+Na]+,[M-H4O2+H]+,[M+H3N+H]+,[M+Cl]-,[M-H]-,[M+H]+,[M-H2O+H]+,[M-H2O-H]-]",
         "--UseHeuristic.mzToUseHeuristicOnly=650",
-        "--AlgorithmProfile=qtof",
+        f"--AlgorithmProfile={ms1}",
         "--IsotopeMs2Settings=IGNORE",
-        "--MS2MassDeviation.allowedMassDeviation=20.0ppm",
+        f"--MS2MassDeviation.allowedMassDeviation={ms2}ppm",
         "--NumberOfCandidatesPerIon=1",
         "--UseHeuristic.mzToUseHeuristic=300",
-        "--FormulaSettings.detectable=B,Cl,Br,Se,S",
+        f"--FormulaSettings.detectable={atoms_detectable}",
         "--NumberOfCandidates=100",
         "--AdductSettings.fallback=[[M+Na]+,[M-H4O2+H]+,[M+H3N+H]+,[M+Cl]-,[M-H]-,[M+H]+,[M-H2O+H]+,[M-H2O-H]-]",
         "--ZodiacNumberOfConsideredCandidatesAt300Mz=10",

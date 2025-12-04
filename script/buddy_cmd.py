@@ -3,18 +3,21 @@ import pandas as pd
 from msbuddy import Msbuddy, MsbuddyConfig, Adduct
 
 
-def run_msbuddy(input_dir, output_dir, batch_size=1000):
+def run_msbuddy(input_dir, output_dir, confing, batch_size=1000):
     """
     Run MSBuddy to annotate molecular formulas from MGF files and save the results in chunks of specified size.
     """
+    ms1 = confing['formula_prediction']['msbuddy']['MS1_ppm']
+    ms2 = confing['formula_prediction']['msbuddy']['MS2_ppm']
+    atoms = confing['formula_prediction']['msbuddy']['halogen']
     # Create an MsbuddyConfig object with specific configuration parameters
     msb_config = MsbuddyConfig(
         ms_instr=None,
         ppm=True,
-        ms1_tol=10,
-        ms2_tol=20,
+        ms1_tol=ms1,
+        ms2_tol=ms2,
         timeout_secs=600,
-        halogen=True
+        halogen=atoms
     )
 
     # Initialize the Msbuddy engine with the specified configuration

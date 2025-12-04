@@ -50,6 +50,7 @@ def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfra
     calced_score_df = predict_and_append(score_df, machine_dir, adduct_column="adduct")
     convert_to_canonical_smiles(calced_score_df, 'SMILES')
     result_score_df = aggregate_probability_with_rank(calced_score_df, summary_n)
+    result_score_df = result_score_df.sort_values(['filename', 'rank'], ascending=[True, True])
 
     # smiles output summary
     dfs = [msfinder_smiles_df, sirius_smiles_df, metfrag_smiles_df]

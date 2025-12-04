@@ -95,7 +95,7 @@ def creat_metfrag_file(msp_file, parameter_file, output_dir, library_path):
     spectrum = {}
     is_in_peaks = False
 
-    # Parse MSP file line by line (memory efficient)
+    # Parse MSP file line by line 
     with open(msp_file, "r") as f:
         for line in tqdm(f, desc="Reading MSP file lines", unit="line"):
             stripped_line = line.strip().lower()

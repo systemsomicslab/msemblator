@@ -38,7 +38,7 @@ def sirius_login(sirius_directory, username, password):
     finally:
         child.close()
 
-def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_search_db):
+def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_search_db, config):
     """
     Runs the Sirius structure prediction tool with the specified parameters.
 
@@ -51,6 +51,9 @@ def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_s
     Returns:
         None
     """
+    ms1 = config['structure_prediction']['sirius']['MS1']
+    ms2 = config['structure_prediction']['sirius']['MS2_ppm']
+    
     # Construct the command for running Sirius with the necessary parameters
     command = [
         sirius_path,
@@ -60,7 +63,7 @@ def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_s
         "--IsotopeSettings.filter=true",
         "--FormulaSearchDB=",
         "--Timeout.secondsPerTree=0",
-        "--FormulaSettings.enforced=HCNOPSFClBrI",
+        "--FormulaSettings.enforced=HCNOF[5]PI[5]I",
         "--Timeout.secondsPerInstance=600",
         "--AdductSettings.detectable=[M-H]-,[M+H]+,[M-H2O-H]-,[M-H2O+H]+,[M-H4O2+H]+,[M+H3N+H]+",
         "--UseHeuristic.mzToUseHeuristicOnly=650",

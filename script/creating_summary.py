@@ -8,7 +8,7 @@ from sirius_summary import process_sirius_summary
 from msbuddy_summary import process_buddy_summary
 from calculating_score import predict_and_append, aggregate_probability_with_rank, formula_machine_input
 
-def creating_output_summary(input_msp, sirius_folder, msfinder_file_path, buddy_folder, machine_dir, top_n = 100, summary_n = 5):
+def creating_output_summary(input_msp, sirius_folder, msfinder_file_path, buddy_folder, machine_dir, top_n, summary_n):
     msp_data = read_msp_file(input_msp)
     compound_ionization_data = extract_compound_and_ionization(msp_data)
     summary_df = pd.DataFrame(columns=['filename', 'adduct'])
@@ -49,6 +49,8 @@ def creating_output_summary(input_msp, sirius_folder, msfinder_file_path, buddy_
 
     summary_score_df = aggregate_probability_with_rank(calc_score_df, top_n)
     summary_score_df = summary_score_df[summary_score_df["rank"] <= summary_n]
+    summary_score_df = summary_score_df.sort_values(['filename', 'rank'], ascending=[True, True])
+
     summary_score_top_df = summary_score_df[summary_score_df["rank"]==1]
     summary_output = pd.merge(msfinder_formula_df, sirius_formula_df, on=['filename', 'adduct'], how='inner')
     summary_output = pd.merge(summary_output, buddy_formula_df, on=['filename', 'adduct'], how='inner')

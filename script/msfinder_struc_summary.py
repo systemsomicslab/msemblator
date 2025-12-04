@@ -2,7 +2,7 @@ import os
 import glob
 import pandas as pd
 import joblib
-from convert_struc_data_type import normalize_rank_score as normalize_rank_n
+from convert_struc_data_type import normalize_rank_score
 from struc_score_normalization import ClippingTransformer
 
 def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df, 
@@ -71,7 +71,7 @@ def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df,
     msfinder_score_calc_df["Used_tools"] = msfinder_score_calc_df["rank"].apply(lambda r: f"MS-FINDER_Rank:{r}")
 
     # Apply rank normalization function (assumes `normalize_rank` is defined)
-    normalize_rank_n(msfinder_score_calc_df)
+    normalize_rank_score(msfinder_score_calc_df)
 
     # Map adducts from `name_adduct_df`
     msfinder_score_calc_df['adduct'] = msfinder_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])

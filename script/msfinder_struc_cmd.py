@@ -4,10 +4,10 @@ import sys
 from convert_struc_data_type import modify_msfinder_config_in_place
 
 
-def run_msfinder(msfinder_directory, input_path, output_path, method_path, library_path):
+def run_msfinder(msfinder_directory, input_path, output_path, method_path, library_path, config):
 
     # Modify config before running
-    modify_msfinder_config_in_place(method_path, library_path)
+    modify_msfinder_config_in_place(method_path, library_path, config)
 
     # Full path to MSFinder executable
     msfinder_exe = os.path.join(msfinder_directory, "MsfinderConsoleApp.exe")

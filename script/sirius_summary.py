@@ -2,7 +2,8 @@ import os
 import glob
 import pandas as pd
 import joblib
-from converting_data_type import normalize_rank,ClippingTransformer
+from converting_data_type import ClippingTransformer
+from convert_struc_data_type import normalize_rank_score
 
 def process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_df, score_df, top_n = 5):
     # Read Sirius output files
@@ -58,7 +59,7 @@ def process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_d
     
     sirius_score_calc_df['adduct'] = sirius_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
     
-    normalize_rank(sirius_score_calc_df)  # Assuming normalize_rank is defined elsewhere
+    normalize_rank_score(sirius_score_calc_df)  # Assuming normalize_rank is defined elsewhere
     
     filtered_df['rank'] = filtered_df['rank'].astype(int)
     top5_df = filtered_df[filtered_df['rank'] <= 5]
