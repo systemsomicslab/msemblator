@@ -5,6 +5,10 @@ script/data/
 demo_data/
 script/structure_scoring_model/
 formula_scoring_model/
+script/msfinder/MSFINDER ver 3.61/
+script/msfinder/msp/
+script/msfinder/output/
+script/msfinder/output_formula/
 script/msfinder/
 script/save_folder/
 script/sirius/
@@ -17,3 +21,6 @@ script/sirius.ipynb
 script/test.py
 script/test_formula_summary.py
 script/training_desparation.ipynb
+script/nist_data.ipynb
+script/new_scoring_output.ipynb
+script/msemblater_output.ipynb

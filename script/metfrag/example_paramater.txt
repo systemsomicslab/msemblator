@@ -16,8 +16,8 @@ NeutralPrecursorMass = 482.251585
 #
 # peak matching parameters
 #
-FragmentPeakMatchAbsoluteMassDeviation = 0.001
-FragmentPeakMatchRelativeMassDeviation = 5
+FragmentPeakMatchAbsoluteMassDeviation = 0.01
+FragmentPeakMatchRelativeMassDeviation = 20
 PrecursorIonMode = 1
 IsPositiveIonMode = True
 

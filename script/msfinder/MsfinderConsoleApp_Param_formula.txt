@@ -5,6 +5,8 @@ IsotopicAbundanceTolerance=20
 MassToleranceType=ppm
 CommonRange=TRUE
 ExtendedRange=FALSE
+
+
 ExtremeRange=FALSE
 ElementProbabilityCheck=False
 Ocheck=True
