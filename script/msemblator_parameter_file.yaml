@@ -19,13 +19,11 @@ formula_prediction:
 
 structure_prediction:
   msfinder:
-    MS1_ppm: 10
+    MS1_ppm: 5
     MS2_ppm: 20
     halogen: True #True or False
 
   sirius:
-  #  possible options: orbitrap, qtof
-    MS1: qtof
     MS2_ppm: 20
 
   metfrag:
