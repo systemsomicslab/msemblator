@@ -51,7 +51,6 @@ def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_s
     Returns:
         None
     """
-    ms1 = config['structure_prediction']['sirius']['MS1']
     ms2 = config['structure_prediction']['sirius']['MS2_ppm']
     
     # Construct the command for running Sirius with the necessary parameters
@@ -69,7 +68,7 @@ def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_s
         "--UseHeuristic.mzToUseHeuristicOnly=650",
         "--AlgorithmProfile=qtof",
         "--IsotopeMs2Settings=IGNORE",
-        "--MS2MassDeviation.allowedMassDeviation=20.0ppm",
+        f"--MS2MassDeviation.allowedMassDeviation={ms2}ppm",
         "--NumberOfCandidatesPerIon=1",
         "--UseHeuristic.mzToUseHeuristic=300",
         "--FormulaSettings.detectable=B,Cl,Br,Se,S",
