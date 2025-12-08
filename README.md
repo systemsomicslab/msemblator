@@ -199,5 +199,5 @@ Download:[MSFINDER3.61](https://github.com/systemsomicslab/MsdialWorkbench/relea
 Download:[MetFragCommandLine-2.5.0.jar](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)  
 
 **・ Required compound library and scoring model**  
-Download:[Required compound library and scoring model](https://zenodo.org/records/15193226)  
+Download:[Required compound library and scoring model](https://zenodo.org/records/17490421)  
 
