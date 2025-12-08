@@ -1,4 +1,4 @@
-# Msemblator: A reliable annotation tool for metabolomics data
+# MS-Emblator 2025.12.5: A reliable annotation tool for metabolomics data
 ## Overview
 Msemblator is a metabolomics annotation tool that integrates results from multiple in-silico annotation tools and applies ensemble learning-based scoring to provide highly reliable annotations.
 
@@ -146,7 +146,15 @@ cd msemblator/script
 pip install -r requirements.txt
 ```
 
-### 3. External Tool Placement  
+### 3. Java version 
+MetFrag requires **Java 21 or higher** in order to run.
+
+Check your installed Java version:
+``` PowerShell
+java --version
+```
+
+### 4. External Tool Placement  
 Please download the required external tools and place them in the following recommended structure:  
 
 #### Project structure  
@@ -192,13 +200,4 @@ Download:[MetFragCommandLine-2.5.0.jar](https://github.com/ipb-halle/MetFragRela
 
 **・ Required compound library and scoring model**  
 Download:[Required compound library and scoring model](https://zenodo.org/records/15193226)  
-
-
-
-
-
-
-
-
-
 
