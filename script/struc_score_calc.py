@@ -38,12 +38,12 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
     df_original = df.copy()
 
     # Load the general model that applies to all adducts
-    model_all_path = os.path.join(machine_dir, "xgboost_final_all.pkl")
+    model_all_path = os.path.join(machine_dir, "random_forest_final_all.pkl")
     model_all = joblib.load(model_all_path)
 
     # Extract available adduct models from the directory
     trained_adducts = [
-        file.split("_")[-2].replace(".pkl", "") for file in os.listdir(machine_dir) if "xgboost_" in file
+        file.split("_")[-2].replace(".pkl", "") for file in os.listdir(machine_dir) if "random_forest_" in file
     ]
 
     predicted_probs = []
@@ -53,7 +53,7 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
         adduct = str(row.get(adduct_column, "all")).replace("+", "plus").replace("-", "minus") 
 
         # Select the specific adduct model if available; otherwise, use the general model
-        model_path = os.path.join(machine_dir, f"xgboost_{adduct}_final.pkl") if adduct in trained_adducts else model_all_path
+        model_path = os.path.join(machine_dir, f"random_forest_{adduct}_final.pkl") if adduct in trained_adducts else model_all_path
 
         # Load the selected model
         logistic_model = joblib.load(model_path)

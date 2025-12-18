@@ -41,13 +41,13 @@ def predict_and_append(df, machine_dir, adduct_column="adduct"):
     df_predict[feature_columns] = df_predict[feature_columns].fillna(0)
 
     # Load the default 'all' model.
-    model_all_path = os.path.join(machine_dir, "xgboost_final_all.pkl")
+    model_all_path = os.path.join(machine_dir, "random_forest_final_all.pkl")
     model_all = joblib.load(model_all_path)
 
     # Preload all available adduct-specific models (excluding the 'all' model) into a dictionary.
     model_dict = {}
     for filename in os.listdir(machine_dir):
-        if "xgboost_" in filename and filename != "xgboost_final_all.pkl":
+        if "random_forest_" in filename and filename != "random_forest_final_all.pkl":
             tokens = filename.split("_")
             adduct_name = tokens[-2].replace(".pkl", "")
             model_path = os.path.join(machine_dir, filename)
