@@ -124,16 +124,16 @@ def format_msp(spectrum):
     try:
         ms2_data = "\n".join(spectrum["ms2"])
         format = (
-            f"NAME: {spectrum["name"]}\n"
-            f"PRECURSORMZ: {spectrum["precursormz"]}\n"
-            f"PRECURSORTYPE: {spectrum["precursortype"]}\n"
-            f"RETENTIONTIME: {spectrum["retentiontime"]}\n"
-            f"FORMULA: {spectrum["formula"]}\n"
-            f"ONTOLOGY: {spectrum["ontology"]}\n"
-            f"INCHIKEY: {spectrum["inchikey"]}\n"
-            f"SMILES: {spectrum["smiles"]}\n"
-            f"COMMENT: {spectrum["comment"]}\n"
-            f"Num Peaks: {spectrum["numpeaks"]}\n{ms2_data}"            
+            f"NAME: {spectrum['name']}\n"
+            f"PRECURSORMZ: {spectrum['precursormz']}\n"
+            f"PRECURSORTYPE: {spectrum['precursortype']}\n"
+            f"RETENTIONTIME: {spectrum['retentiontime']}\n"
+            f"FORMULA: {spectrum['formula']}\n"
+            f"ONTOLOGY: {spectrum['ontology']}\n"
+            f"INCHIKEY: {spectrum['inchikey']}\n"
+            f"SMILES: {spectrum['smiles']}\n"
+            f"COMMENT: {spectrum['comment']}\n"
+            f"Num Peaks: {spectrum['numpeaks']}\n{ms2_data}"            
         )
         return format
     except KeyError as e:
