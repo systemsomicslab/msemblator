@@ -4,7 +4,7 @@ import logging
 from tqdm import tqdm
 from functools import lru_cache
 from concurrent.futures import ProcessPoolExecutor
-
+from collections import defaultdict
 from chem_data import formula_to_dict, calc_exact_mass
 
 logging.basicConfig(level=logging.ERROR)
@@ -18,24 +18,24 @@ def safe_calc_exact_mass(formula):
     except Exception as e:
         logging.error(f"Error calculating exact mass for formula {formula}: {e}")
         return None
-
+    
+def filtering_library_by_formula_index(library_index, target_formula):
+    headers, index = library_index
+    return [headers] + index.get(target_formula, [])
 
 def load_library(library_path):
-    """Load the library once into memory and sort by MonoisotopicMass."""
     with open(library_path, "r") as f:
         reader = csv.reader(f, delimiter="|")
         headers = next(reader)
-        mass_index = headers.index("MonoisotopicMass")
-        rows = [(float(row[mass_index]), row) for row in reader if row]
-    rows.sort(key=lambda x: x[0])  # sort by mass
-    return headers, rows
+        formula_idx = headers.index("MolecularFormula") 
 
+        index = defaultdict(list)
+        for row in reader:
+            if not row:
+                continue
+            index[row[formula_idx]].append(row)
 
-def filtering_library_preloaded(library, target_mass, tolerance=0.02):
-    """Filter preloaded library rows by mass range."""
-    headers, rows = library
-    lo, hi = target_mass - tolerance, target_mass + tolerance
-    return [headers] + [row for mass, row in rows if lo <= mass <= hi]
+    return headers, index
 
 
 def process_spectrum(spectrum, parameter_file, output_dir, library):
@@ -48,8 +48,8 @@ def process_spectrum(spectrum, parameter_file, output_dir, library):
                 f.write("\n".join(spectrum["m/z"]))
 
         # Write filtered library
-        if "NeutralPrecursorMass" in spectrum:
-            filtered = filtering_library_preloaded(library, spectrum["NeutralPrecursorMass"], tolerance=0.01)
+        if "FORMULA" in spectrum:
+            filtered = filtering_library_by_formula_index(library, spectrum.get("FORMULA"))
             library_file = os.path.join(output_dir, f"{spectrum['PeakListPath']}_library.txt")
             with open(library_file, "w") as f:
                 writer = csv.writer(f, delimiter="|")
