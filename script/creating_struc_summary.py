@@ -3,7 +3,7 @@ import glob
 import re
 import joblib
 import pandas as pd
-from convert_struc_data_type import read_msp_file,extract_compound_and_ionization,convert_to_canonical_smiles,normalize_rank
+from convert_struc_data_type import read_msp_file,extract_compound_and_ionization,convert_to_canonical_smiles
 from tqdm import tqdm
 from functools import reduce
 from struc_score_normalization import ClippingTransformer 

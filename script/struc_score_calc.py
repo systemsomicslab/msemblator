@@ -169,6 +169,8 @@ def machine_input_generation(df):
             wide_df['adduct']
             .str.replace("+", "plus", regex=False)
             .str.replace("-", "minus", regex=False)
+            .str.replace("[", "", regex=False)
+            .str.replace("]", "", regex=False)
             == ad_norm
         ).astype(int)   
     return wide_df

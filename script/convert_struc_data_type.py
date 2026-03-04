@@ -113,13 +113,13 @@ def convert_to_canonical_smiles(df, column_name, new_column_name="Canonical_SMIL
     df[new_column_name] = df[column_name].apply(lambda x: safe_convert(x))
     return df
 
-def normalize_rank(df):
-    scaler=MinMaxScaler()
-    df["normalized_rank"]= scaler.fit_transform(df[["rank"]])
+# def normalize_rank(df):
+#     scaler=MinMaxScaler()
+#     df["normalized_rank"]= scaler.fit_transform(df[["rank"]])
     
-def normalize_rank_n(df):
-    scaler=MinMaxScaler()
-    df["normalized_rank"]= 1 - scaler.fit_transform(df[["rank"]])
+# def normalize_rank_n(df):
+#     scaler=MinMaxScaler()
+#     df["normalized_rank"]= 1 - scaler.fit_transform(df[["rank"]])
 
 def normalize_rank_score(df):
     df["normalized_rank"] = 1 - np.log(df["rank"]) / (np.log(df["rank"].max()+1))
