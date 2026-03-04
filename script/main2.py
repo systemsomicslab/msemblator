@@ -42,10 +42,10 @@ def main():
             # Assuming both functions require SIRIUS credentials.
             formula_summary = formula_elucidation(converted_msp_path, output_dir, name_df)
             msp_formula_changer(converted_msp_path, formula_summary, formula_fixed_msp_path)
-            structure_elucidation(formula_fixed_msp_path, output_dir, sirius_username, sirius_password, "MsfinderConsoleApp-Param2_structure.txt", name_df)
+            structure_elucidation(formula_fixed_msp_path, output_dir, sirius_username, sirius_password, name_df)
         else:
             print("\nRunning structure elucidation only...")
-            structure_elucidation(converted_msp_path, output_dir, sirius_username, sirius_password, "MsfinderConsoleApp-Param_all_processing.txt",name_df)
+            structure_elucidation(converted_msp_path, output_dir, sirius_username, sirius_password, name_df)
     else:
         print("\nInvalid option selected. Exiting.")
 

@@ -23,6 +23,8 @@ def main():
     
     input_msp_path = args.input.strip('"').strip("'")
     output_dir = args.output
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     current_dir = os.path.abspath(os.path.dirname(__file__))
     formula_fixed_msp_path = os.path.join(current_dir, "save_folder", "formula_fixed_msp", "formula_fixed.msp").replace("\\", "\\\\")
     converted_msp_path = os.path.join(current_dir, "save_folder", "formula_fixed_msp", "id_change.msp").replace("\\", "\\\\")
@@ -48,11 +50,11 @@ def main():
             formula_summary = formula_elucidation(converted_msp_path, output_dir, name_df)
             msp_formula_changer(converted_msp_path, formula_summary, formula_fixed_msp_path)
             structure_elucidation(formula_fixed_msp_path, output_dir, args.sirius_user, args.sirius_pass, 
-                                  "MsfinderConsoleApp-Param_all_processing.txt", name_df)
+                                  name_df)
         else:
             print("\nRunning structure elucidation only...")
             structure_elucidation(converted_msp_path, output_dir, args.sirius_user, args.sirius_pass, 
-                                  "MsfinderConsoleApp-Param_all_processing.txt", name_df)
+                                  name_df)
     
     else:
         print("\nInvalid mode selected. Exiting.")

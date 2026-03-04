@@ -9,7 +9,7 @@ import yaml
 from metfrag_file_processing import creat_metfrag_file
 from metfrag_struc_cmd import run_metfrag_command
 from splitting_msp import read_msp
-from msfinder_struc_cmd import run_msfinder
+from msfinder_struc_cmd import run_msfinder, process_folder
 from msp_to_ms import convert_msp_file_to_ms
 from sirius_struc_cmd import sirius_login, run_sirius_struc
 from creating_struc_summary import struc_summary
@@ -17,7 +17,7 @@ from struc_utility import clear_folder, clear_folder_except, save_file, generate
 from struc_score_normalization import ClippingTransformer
 
 # Clear required folders
-def structure_elucidation(input_msp, summary_output_dir, username, password, msfinder_method_file, name_df):
+def structure_elucidation(input_msp, summary_output_dir, username, password, name_df):
     print("Running structure elucidation")
     # Set up logging configuration.
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -29,7 +29,8 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
     msfinder_directory = msfinder_dirs[0]
     msfinder_folder = os.path.join(current_dir, "msfinder", "output")
     library_path = os.path.join(current_dir, "msfinder", "coconutandBLEXP.txt")
-    method_path = os.path.join(current_dir, "msfinder", msfinder_method_file)
+    msfinder_formula_method_path = os.path.join(current_dir, "msfinder", "MsfinderConsoleApp_Param_formula.txt")
+    msfinder_structure_method_path = os.path.join(current_dir, "msfinder", "MsfinderConsoleApp-Param2_structure.txt")
     msp_folder = os.path.join(current_dir, "msfinder", "msp")
     metfrag_paramater_dir = os.path.join(current_dir, "metfrag")
     ms_dir = os.path.join(current_dir, "sirius", "ms")
@@ -107,7 +108,10 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, msf
         split_data = read_msp(input_msp)
         for filename, content in split_data.items():
             save_file(os.path.join(msp_folder, f"{filename}.msp"), content)
-        run_msfinder(msfinder_directory, msp_folder, msfinder_folder, method_path, library_path, config)
+        run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_formula_method_path, library_path, config) # Run formula prediction
+        process_folder(msp_folder) # Process the MSP files to extract formulas and prepare MS-FINDER input
+        clear_folder(msfinder_folder) # Clear formula prediction results to prepare for structure prediction
+        run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_structure_method_path, library_path, config) # Run structure prediction 
     except Exception as e:
         logging.error(f"MSFinder processing failed: {e}")
     print("MS-FINDER processing complete")
