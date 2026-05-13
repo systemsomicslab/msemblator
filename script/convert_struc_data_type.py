@@ -66,7 +66,7 @@ def modify_msfinder_config_in_place(method_path, librarypath, config):
         "ClCheck=": f"ClCheck={str(elements)}\n",
         "BrCheck=": f"BrCheck={str(elements)}\n",
         "Icheck=": f"Icheck={str(elements)}\n",
-        "LibrarySearchDBFilePath=": f"LibrarySearchDBFilePath={librarypath}\n"
+        "UserDefinedDbFilePath=": f"UserDefinedDbFilePath={librarypath}\n"
     }
     with open(method_path, 'r') as file:
         lines = file.readlines()
