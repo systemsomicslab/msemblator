@@ -6,6 +6,40 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+DEFAULT_ADDUCTS = (
+    "[M+Na]+,[M-H4O2+H]+,[M+H3N+H]+,[M+Cl]-,[M-H]-,[M+H]+,"
+    "[M-H2O+H]+,[M-H2O-H]-"
+)
+
+
+def _script_dir():
+    return os.path.abspath(os.path.dirname(__file__))
+
+
+def _resolve_sirius6_path(sirius_path=None):
+    """Return the bundled SIRIUS 6 executable, falling back to the provided path."""
+    bundled_path = os.path.join(_script_dir(), "sirius6", "sirius.exe")
+    if os.path.exists(bundled_path):
+        return bundled_path
+    return sirius_path
+
+
+def _child_output(child):
+    output = child.before or ""
+    if isinstance(output, bytes):
+        output = output.decode(errors="replace")
+    return output.strip()
+
+
+def _ensure_summary_has_rows(summary_path, summary_name):
+    if not os.path.exists(summary_path):
+        raise RuntimeError(f"SIRIUS did not write {summary_name}: {summary_path}")
+    with open(summary_path, "r", encoding="utf-8") as file:
+        line_count = sum(1 for line in file if line.strip())
+    if line_count <= 1:
+        raise RuntimeError(f"SIRIUS wrote {summary_name}, but it contains no candidate rows.")
+
+
 def sirius_login(sirius_directory, username, password):
     """
     Log in to Sirius using the command-line interface.
@@ -18,22 +52,28 @@ def sirius_login(sirius_directory, username, password):
     Returns:
         None
     """
+    sirius_path = _resolve_sirius6_path(os.path.join(sirius_directory, "sirius.exe"))
     try:
-        os.chdir(sirius_directory)
+        sirius_directory = os.path.dirname(sirius_path)
         login_command = f".\\sirius.exe login -u {username} -p"
 
         # Use wexpect to handle the login process
-        child = wexpect.spawn(f"powershell {login_command}")
+        child = wexpect.spawn(f"powershell {login_command}", cwd=sirius_directory, echo=False)
         child.expect("Enter value for --password")
         child.sendline(password)
         child.expect("Login successful!", timeout=60)
         logging.info("Login successful!")
     except wexpect.TIMEOUT:
+        message = _child_output(child)
         logging.error("Login process timed out.")
+        raise RuntimeError(f"SIRIUS login timed out. Output: {message}")
     except wexpect.EOF:
+        message = _child_output(child)
         logging.error("Login failed or process ended unexpectedly.")
+        raise RuntimeError(f"SIRIUS login failed or process ended unexpectedly. Output: {message}")
     finally:
-        child.close()
+        if "child" in locals():
+            child.close()
 
 
 def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path, config):
@@ -57,47 +97,50 @@ def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path, config):
         atoms_enforced = "HCNOP"
 
 
+    sirius_path = _resolve_sirius6_path(sirius_path)
+    os.makedirs(sirius_outputdir, exist_ok=True)
+    sirius_project = os.path.join(sirius_outputdir, "sirius_project.sirius")
+
     command = [
-        sirius_path,  # Path to the executable
-        "-i", sirius_inputdir,  # Input file path
-        "-o", sirius_outputdir,  # Output directory
+        sirius_path,
         "--ignore-formula",
-        "config",
-        "--IsotopeSettings.filter=true",
-        "--FormulaSearchDB=",
-        "--Timeout.secondsPerTree=100",
-        f"--FormulaSettings.enforced={atoms_enforced}",
-        "--Timeout.secondsPerInstance=100",
-        "--AdductSettings.detectable=[[M+Na]+,[M-H4O2+H]+,[M+H3N+H]+,[M+Cl]-,[M-H]-,[M+H]+,[M-H2O+H]+,[M-H2O-H]-]",
-        "--UseHeuristic.mzToUseHeuristicOnly=650",
-        f"--AlgorithmProfile={ms1}",
-        "--IsotopeMs2Settings=IGNORE",
-        f"--MS2MassDeviation.allowedMassDeviation={ms2}ppm",
-        "--NumberOfCandidatesPerIon=1",
-        "--UseHeuristic.mzToUseHeuristic=300",
-        f"--FormulaSettings.detectable={atoms_detectable}",
-        "--NumberOfCandidates=100",
-        "--AdductSettings.fallback=[[M+Na]+,[M-H4O2+H]+,[M+H3N+H]+,[M+Cl]-,[M-H]-,[M+H]+,[M-H2O+H]+,[M-H2O-H]-]",
-        "--ZodiacNumberOfConsideredCandidatesAt300Mz=10",
-        "--ZodiacRunInTwoSteps=true",
-        "--ZodiacEdgeFilterThresholds.minLocalConnections=10",
-        "--ZodiacEdgeFilterThresholds.thresholdFilter=0.95",
-        "--ZodiacEpochs.burnInPeriod=2000",
-        "--ZodiacEpochs.numberOfMarkovChains=10",
-        "--ZodiacNumberOfConsideredCandidatesAt800Mz=50",
-        "--ZodiacEpochs.iterations=20000",
-        "--RecomputeResults=false",
-        "formula",
-        "zodiac",
-        "write-summaries",
+        "-i", sirius_inputdir,
+        "-o", sirius_project,
+        "formulas",
+        "--tree-timeout=100",
+        "--compound-timeout=100",
+        f"--elements-enforced={atoms_enforced}",
+        f"--elements-considered={atoms_detectable}",
+        f"--adducts-considered={DEFAULT_ADDUCTS}",
+        "--heuristic-only=650",
+        "--heuristic=300",
+        f"--profile={ms1}",
+        f"--ppm-max-ms2={ms2}",
+        "--candidates-per-ionization=1",
+        "--candidates=100",
+        "summaries",
+        "--no-top-hit-summary=false",
+        "--top-k-summary=100",
         "--output", sirius_outputdir
     ]
 
     try:
+        output_lines = []
         with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
+                output_lines.append(line)
                 print(line, end="")
-            proc.wait()
+            return_code = proc.wait()
+        output_text = "".join(output_lines)
+        if return_code != 0:
+            raise RuntimeError(f"SIRIUS execution failed with exit code {return_code}.")
+        if "Error When Executing ToolChain" in output_text or "Unexpected Error!" in output_text:
+            raise RuntimeError("SIRIUS execution failed. See output above for details.")
+        _ensure_summary_has_rows(
+            os.path.join(sirius_outputdir, "formula_identifications_top-100.tsv"),
+            "formula_identifications_top-100.tsv"
+        )
 
     except Exception as e:
         print(f"An error occurred during SIRIUS execution: {e}")
+        raise
