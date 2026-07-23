@@ -1,26 +1,19 @@
-__pycache__/
+﻿__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+output/
+data/
+save_folder/
+external/
+models/
+work/
+buddy/
+msfinder/output/
+sirius/output/
+.env
 
-script/buddy/
-script/data/
-demo_data/
-script/structure_scoring_model/
-formula_scoring_model/
-script/msfinder/MSFINDER ver 3.61/
-script/msfinder/msp/
-script/msfinder/output/
-script/msfinder/output_formula/
-script/msfinder/
-script/save_folder/
-script/sirius/
-script/test.ipynb
-script/metfrag
-script/formula_input.ipynb
-script/mz_summary.py
-script/score_only.py
-script/sirius.ipynb
-script/test.py
-script/test_formula_summary.py
-script/training_desparation.ipynb
-script/nist_data.ipynb
-script/new_scoring_output.ipynb
-script/msemblater_output.ipynb
+# Large compound libraries are distributed via Zenodo.
+config/msfinder/coconutandBLEXP.txt
