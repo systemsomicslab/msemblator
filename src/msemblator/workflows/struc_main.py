@@ -13,9 +13,10 @@ from msemblator.runners.msfinder_struc_cmd import run_msfinder, process_folder
 from msemblator.formats.msp_to_ms import convert_msp_file_to_ms
 from msemblator.runners.sirius_struc_cmd import sirius_login, run_sirius_struc
 from msemblator.summaries.creating_struc_summary import struc_summary
+from msemblator.chemistry.converting_data_type import modify_msfinder_config_in_place
 from msemblator.utils.struc_utility import clear_folder, clear_folder_except, save_file, generate_unique_filename
 from msemblator.scoring.struc_score_normalization import ClippingTransformer
-from msemblator.paths import METFRAG_DIR, MSFINDER_DIR, PARAMETER_FILE, SIRIUS_DIR, STRUCTURE_MODEL_DIR, WORK_DIR, ensure_runtime_directories
+from msemblator.paths import METFRAG_DIR, METFRAG_CONFIG_DIR, LIBRARY_DIR, MSFINDER_DIR, MSFINDER_CONFIG_DIR, PARAMETER_FILE, SIRIUS_DIR, STRUCTURE_MODEL_DIR, WORK_DIR, ensure_runtime_directories
 
 # Clear required folders
 def structure_elucidation(input_msp, summary_output_dir, username, password, name_df):
@@ -29,17 +30,18 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
     msfinder_dirs = glob.glob(msfinder_directorys)
     msfinder_directory = msfinder_dirs[0]
     msfinder_folder = os.path.join(current_dir, "msfinder_output")
-    library_path = os.path.join(str(MSFINDER_DIR), "MsfinderStructureDB_all.txt")
-    msfinder_formula_method_path = os.path.join(str(MSFINDER_DIR), "MsfinderConsoleApp_Param_formula.txt")
-    msfinder_structure_method_path = os.path.join(str(MSFINDER_DIR), "MsfinderConsoleApp-Param2_structure.txt")
+    library_path = os.path.join(str(LIBRARY_DIR), "MsfinderStructureDB_all.txt")
+    msfinder_formula_method_path = os.path.join(str(MSFINDER_CONFIG_DIR), "MsfinderConsoleApp_Param_formula.txt")
+    msfinder_structure_method_path = os.path.join(str(MSFINDER_CONFIG_DIR), "MsfinderConsoleApp-Param2_structure.txt")
     msp_folder = os.path.join(current_dir, "msfinder_msp")
-    metfrag_paramater_dir = str(METFRAG_DIR)
+    metfrag_parameter_dir = str(METFRAG_CONFIG_DIR)
+    metfrag_run_dir = str(METFRAG_DIR)
     ms_dir = os.path.join(current_dir, "sirius", "ms")
     sirius_directory = str(SIRIUS_DIR)
     sirius_outputdir = os.path.join(current_dir, "sirius_output")
     sirius_inputdir = os.path.join(ms_dir, "converted_ms.ms")
     sirius_path = os.path.join(sirius_directory, "sirius.exe")
-    structure_search_db = os.path.join(sirius_directory, "sirius_structure_db.siriusdb")
+    structure_search_db = os.path.join(str(LIBRARY_DIR), "sirius_structure_db.siriusdb")
     machine_dir = str(STRUCTURE_MODEL_DIR)
     parameter_path = str(PARAMETER_FILE)
     def load_parameters(param_path):
@@ -50,12 +52,12 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
 
     # Clear required folders.
     metfrag_exclude_items = ["example_paramater.txt", "library_psv_v2.txt", "MetFragCommandLine-2.5.0.jar", "metfrag_StructureDB.txt"]
-    clear_folder_except(metfrag_paramater_dir, metfrag_exclude_items)
+    clear_folder_except(metfrag_run_dir, metfrag_exclude_items)
     for folder in [msp_folder, ms_dir, msfinder_folder, sirius_outputdir]:
         clear_folder(folder)
 
     # Ensure necessary folders exist.
-    for folder in [msp_folder, metfrag_paramater_dir, ms_dir, msfinder_folder, sirius_outputdir]:
+    for folder in [msp_folder, metfrag_run_dir, ms_dir, msfinder_folder, sirius_outputdir]:
         if not os.path.exists(folder):
             os.makedirs(folder)
 
@@ -77,9 +79,9 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
     # MetFrag Processing
     metfrag_start_time = time.time()
     print("MetFrag processing start")
-    with open(os.path.join(metfrag_paramater_dir, "example_paramater.txt"), 'r') as file:
+    with open(os.path.join(metfrag_parameter_dir, "example_paramater.txt"), 'r') as file:
         lines = file.readlines()
-    with open(os.path.join(metfrag_paramater_dir, "example_paramater.txt"), 'w') as file:
+    with open(os.path.join(metfrag_run_dir, "example_paramater.txt"), 'w') as file:
         for line in lines:
             if line.startswith('FragmentPeakMatchAbsoluteMassDeviation'):
                 line = f'FragmentPeakMatchAbsoluteMassDeviation = {config["structure_prediction"]["metfrag"]["MS2_Da"]}\n'
@@ -91,11 +93,11 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
     try:
         creat_metfrag_file(
             input_msp, 
-            os.path.join(metfrag_paramater_dir, "example_paramater.txt"),
-            metfrag_paramater_dir, 
-            os.path.join(metfrag_paramater_dir, "library_psv_v2.txt")
+            os.path.join(metfrag_parameter_dir, "example_paramater.txt"),
+            metfrag_run_dir, 
+            os.path.join(LIBRARY_DIR, "metfrag_StructureDB.txt")
         )
-        run_metfrag_command(metfrag_paramater_dir)
+        run_metfrag_command(metfrag_run_dir)
     except Exception as e:
         logging.error(f"MetFrag processing failed: {e}")
     print("MetFrag processing complete")
@@ -109,7 +111,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
         split_data = read_msp(input_msp)
         for filename, content in split_data.items():
             save_file(os.path.join(msp_folder, f"{filename}.msp"), content)
-        run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_formula_method_path, library_path, config) # Run formula prediction
+        run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_formula_method_path, '', config) # Run formula prediction
         process_folder(msp_folder) # Process the MSP files to extract formulas and prepare MS-FINDER input
         clear_folder(msfinder_folder) # Clear formula prediction results to prepare for structure prediction
         run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_structure_method_path, library_path, config) # Run structure prediction 
@@ -124,7 +126,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
     print("Generating output files...")
     try:
         result_score_df, summary_smiles_df = struc_summary(
-            input_msp, msfinder_folder, machine_dir, sirius_outputdir, metfrag_paramater_dir, top_n=100, summary_n=config['structure_prediction']['msemblator_output_records']
+            input_msp, msfinder_folder, machine_dir, sirius_outputdir, metfrag_run_dir, top_n=100, summary_n=config['structure_prediction']['msemblator_output_records']
         )
         result_score_df = pd.merge(name_df, result_score_df, left_on = "Updated_NAME", right_on = "filename")
         result_score_df.drop(columns=["Updated_NAME", "filename"], inplace=True)

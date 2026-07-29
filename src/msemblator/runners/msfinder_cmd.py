@@ -2,7 +2,7 @@
 import os 
 import sys
 
-def run_msfinder(msfinder_directory, input_path, output_path, method_path):
+def run_formula_msfinder(msfinder_directory, input_path, output_path, method_path):
     msfinder_exe = os.path.join(msfinder_directory, "MsfinderConsoleApp.exe")
     if not os.path.exists(msfinder_exe):
         print(f"Error: Executable not found at {msfinder_exe}")

@@ -8,12 +8,12 @@ import yaml
 from msemblator.formats.splitting_msp import read_msp
 from msemblator.formats.msp_to_mgf import convert_msp_to_mgf, split_mgf_by_adduct_in_memory
 from msemblator.formats.msp_to_ms import convert_msp_file_to_ms
-from msemblator.runners.msfinder_cmd import run_msfinder
-from msemblator.runners.sirius_cmd import sirius_login, run_sirius
+from msemblator.runners.msfinder_cmd import run_formula_msfinder
+from msemblator.runners.sirius_cmd import run_sirius
 from msemblator.runners.buddy_cmd import run_msbuddy
 from msemblator.summaries.creating_summary import creating_output_summary
 from msemblator.chemistry.converting_data_type import generate_unique_filename, ClippingTransformer, modify_msfinder_config_in_place
-from msemblator.paths import FORMULA_MODEL_DIR, MSFINDER_DIR, PARAMETER_FILE, SIRIUS_DIR, WORK_DIR, ensure_runtime_directories
+from msemblator.paths import FORMULA_MODEL_DIR, MSFINDER_DIR, PARAMETER_FILE, SIRIUS_DIR, WORK_DIR, MSFINDER_CONFIG_DIR, ensure_runtime_directories
 
 def formula_elucidation(input_msp_path, summary_output_dir, name_df):
     print("Running formula elucidation")
@@ -34,7 +34,7 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
     msfinder_directorys = os.path.join(str(MSFINDER_DIR), "MSFINDER*")
     msfinder_dirs = glob.glob(msfinder_directorys)
     msfinder_directory = msfinder_dirs[0]
-    msfinder_method_path = os.path.join(str(MSFINDER_DIR), "MsfinderConsoleApp_Param_formula.txt")
+    msfinder_method_path = os.path.join(str(MSFINDER_CONFIG_DIR), "MsfinderConsoleApp_Param_formula.txt")
     model_dir = str(FORMULA_MODEL_DIR)
     sirius_path = os.path.join(str(SIRIUS_DIR), "sirius.exe")
     msfinder_file_path = os.path.join(msfinder_folder, "Formula*.txt")
@@ -99,7 +99,7 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
     # 5. Run MS-FINDER processing.
     print("MS-FINDER processing start")
     modify_msfinder_config_in_place(msfinder_method_path, config)
-    run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_method_path)
+    run_formula_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_method_path)
     print("MS-FINDER processing complete")
 
     # 6. Run Msbuddy processing.

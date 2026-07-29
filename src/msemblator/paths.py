@@ -4,11 +4,14 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = PROJECT_ROOT / "config"
 EXTERNAL_DIR = PROJECT_ROOT / "external"
+LIBRARY_DIR = PROJECT_ROOT / "library"
 MODELS_DIR = PROJECT_ROOT / "models"
 WORK_DIR = PROJECT_ROOT / "work"
 MSFINDER_DIR = EXTERNAL_DIR / "msfinder"
+MSFINDER_CONFIG_DIR = CONFIG_DIR / "msfinder"
 SIRIUS_DIR = EXTERNAL_DIR / "sirius"
 METFRAG_DIR = EXTERNAL_DIR / "metfrag"
+METFRAG_CONFIG_DIR = CONFIG_DIR / "metfrag"
 FORMULA_MODEL_DIR = MODELS_DIR / "formula"
 STRUCTURE_MODEL_DIR = MODELS_DIR / "structure"
 PARAMETER_FILE = CONFIG_DIR / "msemblator_parameter_file.yaml"
@@ -27,7 +30,7 @@ def validate_runtime(mode):
     if not any(MSFINDER_DIR.glob("MSFINDER*/MsfinderConsoleApp.exe")):
         required.append(MSFINDER_DIR / "MSFINDER*/MsfinderConsoleApp.exe")
     if mode in (2, 3):
-        required.extend([SIRIUS_DIR / "sirius_structure_db.siriusdb", METFRAG_DIR / "MetFragCommandLine-2.5.0.jar", METFRAG_DIR / "metfrag_StructureDB.txt", MSFINDER_DIR / "MsfinderStructureDB_all.txt"])
+        required.extend([LIBRARY_DIR / "sirius_structure_db.siriusdb", METFRAG_DIR / "MetFragCommandLine-2.5.0.jar", LIBRARY_DIR / "metfrag_StructureDB.txt", LIBRARY_DIR / "MsfinderStructureDB_all.txt"])
     missing = [str(path) for path in required if not path.exists()]
     if missing:
         raise FileNotFoundError("Missing runtime assets:\n" + "\n".join(missing))
