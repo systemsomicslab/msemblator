@@ -63,11 +63,11 @@ def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df,
     SD_pipeline = joblib.load(msfinder_SD_pipeline_path)
 
     # Normalize scores
-    filtered_df["normalization_Zscore"] = score_pipeline.transform(filtered_df[[score_column]])
-    filtered_df["normalization_z_score_diff"] = SD_pipeline.transform(filtered_df[["score_diff"]])
+    filtered_df["normalization_score"] = score_pipeline.transform(filtered_df[[score_column]])
+    filtered_df["normalization_score_diff"] = SD_pipeline.transform(filtered_df[["score_diff"]])
 
     # Prepare score calculation DataFrame
-    msfinder_score_calc_df = filtered_df[["filename", "adduct", "rank", "SMILES", "normalization_Zscore", "normalization_z_score_diff"]].copy()
+    msfinder_score_calc_df = filtered_df[["filename", "adduct", "rank", "SMILES", "normalization_score", "normalization_score_diff"]].copy()
     msfinder_score_calc_df["tool_name"] = "msfinder"
     msfinder_score_calc_df["Used_tools"] = msfinder_score_calc_df["rank"].apply(lambda r: f"MS-FINDER_Rank:{r}")
 

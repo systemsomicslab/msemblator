@@ -7,9 +7,9 @@ from msemblator.scoring.struc_score_normalization import ClippingTransformer
 
 def predict_and_append(df, machine_dir, model_type="catboost_ranker"):
     feature_columns = [
-        "Score_NZ_msbuddy","Score_NZ_msfinder","Score_NZ_sirius",
-        "Score_NZ_diff_msbuddy","Score_NZ_diff_msfinder","Score_NZ_diff_sirius",
-        "normalized_rank_msbuddy","normalized_rank_msfinder","normalized_rank_sirius",
+        "normalization_score_msbuddy","normalization_score_msfinder","normalization_score_sirius",
+        "normalization_score_diff_msbuddy","normalization_score_diff_msfinder","normalization_score_diff_sirius",
+        "normalization_rank_msbuddy","normalization_rank_msfinder","normalization_rank_sirius",
         "adduct_MplusHplus", "adduct_MplusNaplus", "adduct_MplusNH4plus",
         "adduct_MminusHminus", "adduct_MplusClminus", "adduct_MplusFAminusHminus"
     ]
@@ -113,9 +113,9 @@ def aggregate_probability_with_rank(
 def formula_machine_input(df):
     for tool in ['msfinder', 'sirius', 'msbuddy']:
         tool_mask = df['tool_name'] == tool
-        df.loc[tool_mask, f'normalization_{tool}_score'] = df.loc[tool_mask, "Score_NZ"]
-        df.loc[tool_mask, f"normalization_{tool}_diff"] = df.loc[tool_mask, "Score_NZ_diff"]
-        df.loc[tool_mask, f"normalization_{tool}_rank"] = df.loc[tool_mask, "normalized_rank"]
+        df.loc[tool_mask, f'normalization_score_{tool}'] = df.loc[tool_mask, "Score_NZ"]
+        df.loc[tool_mask, f"normalization_score_diff_{tool}"] = df.loc[tool_mask, "Score_NZ_diff"]
+        df.loc[tool_mask, f"normalization_rank_{tool}"] = df.loc[tool_mask, "normalized_rank"]
 
     base_columns = ['filename', 'adduct', 'formula']
     score_cols = ["Score_NZ", "Score_NZ_diff", "normalized_rank"]

@@ -124,15 +124,24 @@ def aggregate_probability_with_rank(
 
 
 def machine_input_generation(df):
+    replace_dict = {
+        "[M+CO2]-": "[M+FA-H]-",
+    }
+    df["adduct"] = df["adduct"].fillna("").astype(str)
+
+    for pattern, replacement in replace_dict.items():
+        df["adduct"] = df["adduct"].str.replace(
+            pattern, replacement, regex=True
+        )    
     adduct_list = ['[M+H]+', '[M+Na]+', '[M+NH4]+', '[M-H]-', '[M+Cl]-', '[M+FA-H]-']
     # Convert SMILES to Short InChIKey
     convert_to_shortinchikey(df, "SMILES", new_column_name="Short_InChIKey")
 
     for tool in ["metfrag", "sirius", "msfinder"]:
         tool_mask = df["tool_name"] == tool
-        df.loc[tool_mask, f"normalization_{tool}_score"] = df.loc[tool_mask, "normalization_score"]
-        df.loc[tool_mask, f"normalization_{tool}_diff"] = df.loc[tool_mask, "normalization_score_diff"]
-        df.loc[tool_mask, f"normalization_{tool}_rank"] = df.loc[tool_mask, "normalized_rank"]
+        df.loc[tool_mask, f"normalization_score_{tool}"] = df.loc[tool_mask, "normalization_score"]
+        df.loc[tool_mask, f"normalization_score_diff_{tool}"] = df.loc[tool_mask, "normalization_score_diff"]
+        df.loc[tool_mask, f"normalization_rank_{tool}"] = df.loc[tool_mask, "normalized_rank"]
 
     base_columns = ["filename", "adduct", "Short_InChIKey"]
 

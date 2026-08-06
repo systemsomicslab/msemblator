@@ -133,7 +133,7 @@ def process_sirius_output(
     # Normalize adduct notation
     replace_dict = {
         r"\[M \+ H3N \+ H\]\+": "[M+NH4]+",
-        r"\[M \+ CH2O2 - H\]-": "[M+FA-H]-",
+        r"\[M \+ CHO2 - H\]-": "[M+FA-H]-",
     }
     sirius6_df["adduct"] = sirius6_df["adduct"].fillna("").astype(str)
 

@@ -224,6 +224,29 @@ def sirius_login(sirius_directory, username, password):
         child.close()
 
 
+def extract_output_files(sirius_outputdir, sirius_path):
+    """Extract TSV summary files from an existing SIRIUS project."""
+    sirius_project = os.path.join(sirius_outputdir, "sirius_project.sirius")
+    if not os.path.exists(sirius_project):
+        raise FileNotFoundError(
+            f"SIRIUS project was not found; summary files cannot be extracted: {sirius_project}"
+        )
+
+    command = [
+        sirius_path,
+        "--project", sirius_project,
+        "summaries",
+        "--top-k-summary=100",
+        "--output", sirius_outputdir,
+        "--format=TSV",
+    ]
+    _run_sirius_command(
+        command,
+        os.path.dirname(sirius_path),
+        "summary extraction",
+    )
+
+
 def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_search_db, config):
     """
     Runs the Sirius structure prediction tool with the specified parameters.
@@ -282,10 +305,18 @@ def run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_s
     try:
         cwd = os.path.dirname(sirius_path)
         _run_sirius_command(workflow_command, cwd, "workflow")
-        _ensure_summary_has_rows(
-            os.path.join(sirius_outputdir, "structure_identifications_top-100.tsv"),
-            "structure_identifications_top-100.tsv"
-        )
+        summary_name = "structure_identifications_top-100.tsv"
+        summary_path = os.path.join(sirius_outputdir, summary_name)
+        try:
+            _ensure_summary_has_rows(summary_path, summary_name)
+        except RuntimeError as initial_error:
+            print(
+                f"{initial_error} Attempting to extract summary files from the "
+                "existing SIRIUS project.",
+                flush=True,
+            )
+            extract_output_files(sirius_outputdir, sirius_path)
+            _ensure_summary_has_rows(summary_path, summary_name)
 
     except Exception as e:
         print(f"An error occurred during SIRIUS execution: {e}")

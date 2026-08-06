@@ -89,7 +89,8 @@ def process_wrapper(args):
     return process_spectrum(spectrum, parameter_file, output_dir, library)
 
 
-def creat_metfrag_file(msp_file, parameter_file, output_dir, library_path):
+def 
+creat_metfrag_file(msp_file, parameter_file, output_dir, library_path):
     """Main function: parse MSP, load library once, and process spectra in parallel."""
     spectra = []
     spectrum = {}

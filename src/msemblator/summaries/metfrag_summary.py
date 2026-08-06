@@ -74,11 +74,11 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
     SD_pipeline = joblib.load(metfrag_SD_pipeline_path)
 
     # Normalize scores
-    filtered_df["normalization_Zscore"] = score_pipeline.transform(filtered_df[[score_column]])
-    filtered_df["normalization_z_score_diff"] = SD_pipeline.transform(filtered_df[["Score_Difference"]])
+    filtered_df["normalization_score"] = score_pipeline.transform(filtered_df[[score_column]])
+    filtered_df["normalization_score_diff"] = SD_pipeline.transform(filtered_df[["Score_Difference"]])
 
     # Prepare score calculation DataFrame
-    metfrag_score_calc_df = filtered_df[["filename", "rank", "SMILES", "normalization_Zscore", "normalization_z_score_diff"]].copy()
+    metfrag_score_calc_df = filtered_df[["filename", "rank", "SMILES", "normalization_score", "normalization_score_diff"]].copy()
     metfrag_score_calc_df["tool_name"] = "metfrag"
     metfrag_score_calc_df["Used_tools"] = metfrag_score_calc_df["rank"].apply(lambda r: f"MetFrag_Rank:{r}")
 
