@@ -124,15 +124,7 @@ def aggregate_probability_with_rank(
 
 
 def machine_input_generation(df):
-    replace_dict = {
-        "[M+CO2]-": "[M+FA-H]-",
-    }
-    df["adduct"] = df["adduct"].fillna("").astype(str)
-
-    for pattern, replacement in replace_dict.items():
-        df["adduct"] = df["adduct"].str.replace(
-            pattern, replacement, regex=True
-        )    
+    df["adduct"] = df["adduct"].fillna("").astype(str).replace({"[M+CO2]-": "[M+FA-H]-"})
     adduct_list = ['[M+H]+', '[M+Na]+', '[M+NH4]+', '[M-H]-', '[M+Cl]-', '[M+FA-H]-']
     # Convert SMILES to Short InChIKey
     convert_to_shortinchikey(df, "SMILES", new_column_name="Short_InChIKey")
