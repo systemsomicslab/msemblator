@@ -47,7 +47,7 @@ def struc_summary(input_msp, msfinder_folder, machine_dir, sirius_folder, metfra
     print("Generating structural scoring input...")
 
     score_df = machine_input_generation(smiles_score_df)
-    calced_score_df = predict_and_append_rank(score_df, machine_dir, model_type="xcatboost_ranker")
+    calced_score_df = predict_and_append_rank(score_df, machine_dir, model_type="xgb_ranker")
     print("Structural scoring complete. Generating summary... finishing")
     
     # calced_score_df = predict_and_append(score_df, machine_dir, adduct_column="adduct")

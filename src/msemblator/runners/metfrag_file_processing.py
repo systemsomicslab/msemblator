@@ -3,7 +3,7 @@ import csv
 import logging
 from tqdm import tqdm
 from functools import lru_cache
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from msemblator.chemistry.chem_data import formula_to_dict, calc_exact_mass
 
@@ -23,7 +23,8 @@ def filtering_library_by_formula_index(library_index, target_formula):
     headers, index = library_index
     return [headers] + index.get(target_formula, [])
 
-def load_library(library_path):
+def load_library(library_path, target_formulas=None):
+    """Index library rows, optionally retaining only requested formulas."""
     with open(library_path, "r") as f:
         reader = csv.reader(f, delimiter="|")
         headers = next(reader)
@@ -33,12 +34,14 @@ def load_library(library_path):
         for row in reader:
             if not row:
                 continue
-            index[row[formula_idx]].append(row)
+            formula = row[formula_idx]
+            if target_formulas is None or formula in target_formulas:
+                index[formula].append(row)
 
     return headers, index
 
 
-def process_spectrum(spectrum, parameter_file, output_dir, library):
+def process_spectrum(spectrum, parameter_file, output_dir, library, params=None):
     """Process one spectrum: write peak list, filtered library, and parameter file."""
     try:
         # Write peak list file
@@ -56,8 +59,9 @@ def process_spectrum(spectrum, parameter_file, output_dir, library):
                 writer.writerows(filtered)
 
         # Write parameter file
-        with open(parameter_file, "r") as f:
-            params = f.readlines()
+        if params is None:
+            with open(parameter_file, "r") as f:
+                params = f.readlines()
 
         param_output_file = os.path.join(output_dir, f"parameter_{spectrum['PeakListPath']}.txt")
         with open(param_output_file, "w") as f:
@@ -83,15 +87,16 @@ def process_spectrum(spectrum, parameter_file, output_dir, library):
         logging.error(f"Error processing spectrum {spectrum.get('PeakListPath', 'Unknown')}: {e}")
 
 
-# Wrapper for multiprocessing (must be top-level, not lambda)
+# Keep the existing tuple-based entry point available.
 def process_wrapper(args):
     spectrum, parameter_file, output_dir, library = args
     return process_spectrum(spectrum, parameter_file, output_dir, library)
 
 
-def 
-creat_metfrag_file(msp_file, parameter_file, output_dir, library_path):
-    """Main function: parse MSP, load library once, and process spectra in parallel."""
+def creat_metfrag_file(msp_file, parameter_file, output_dir, library_path, *, max_workers=4):
+    """Generate files with a shared library and template; tune I/O via max_workers."""
+    if not isinstance(max_workers, int) or max_workers < 1:
+        raise ValueError("max_workers must be a positive integer")
     spectra = []
     spectrum = {}
     is_in_peaks = False
@@ -125,17 +130,25 @@ creat_metfrag_file(msp_file, parameter_file, output_dir, library_path):
         if spectrum:
             spectra.append(spectrum)
 
-    # Load library once
-    library = load_library(library_path)
+    target_formulas = {s["FORMULA"] for s in spectra if "FORMULA" in s}
+    library = load_library(library_path, target_formulas)
+    with open(parameter_file, "r") as f:
+        params = tuple(f.readlines())
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Prepare arguments for parallel processing
-    tasks = [(s, parameter_file, output_dir, library) for s in spectra]
+    def write_spectrum(spectrum):
+        process_spectrum(spectrum, parameter_file, output_dir, library, params)
 
-    # Process spectra in parallel
-    with ProcessPoolExecutor() as executor:
-        list(tqdm(
-            executor.map(process_wrapper, tasks),
-            total=len(spectra),
-            desc="Processing spectra",
-            unit="spectrum"
-        ))
+    # Threads share the index instead of serializing it for every spectrum.
+    # Bound pending work for Python versions where map has no buffersize option.
+    with tqdm(total=len(spectra), desc="Processing spectra", unit="spectrum") as progress:
+        if max_workers == 1:
+            for spectrum in spectra:
+                write_spectrum(spectrum)
+                progress.update()
+        else:
+            batch_size = max_workers * 16
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                for start in range(0, len(spectra), batch_size):
+                    for _ in executor.map(write_spectrum, spectra[start:start + batch_size]):
+                        progress.update()

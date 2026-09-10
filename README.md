@@ -188,7 +188,7 @@ easier to identify.
 General command syntax:
 
 ```powershell
-msemblator --input <input.msp> --output <output-directory> --mode <1|2|3>
+.\msemblator.cmd --input <input.msp> --output <output-directory> --mode <1|2|3>
 ```
 
 ### Mode 1: formula elucidation only
@@ -197,7 +197,7 @@ Use mode 1 to predict molecular formulas without running structure annotation.
 A SIRIUS account is not required.
 
 ```powershell
-msemblator `
+.\msemblator.cmd `
   --input .\data\example.msp `
   --output .\results\formula_only `
   --mode 1
@@ -209,7 +209,7 @@ Mode 2 performs the complete workflow and is recommended for MSP files without
 trusted molecular formulas. SIRIUS credentials are required.
 
 ```powershell
-msemblator `
+.\msemblator.cmd `
   --input .\data\example.msp `
   --output .\results\formula_and_structure `
   --mode 2 `
@@ -223,7 +223,7 @@ Use mode 3 when the input MSP file already contains molecular formulas. SIRIUS
 credentials are required.
 
 ```powershell
-msemblator `
+.\msemblator.cmd `
   --input .\data\formula_predicted.msp `
   --output .\results\structure_only `
   --mode 3 `

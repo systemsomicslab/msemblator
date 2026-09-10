@@ -5,7 +5,7 @@ import pandas as pd
 from catboost import CatBoostRanker
 from msemblator.scoring.struc_score_normalization import ClippingTransformer
 
-def predict_and_append(df, machine_dir, model_type="catboost_ranker"):
+def predict_and_append(df, machine_dir, model_type="xgb_ranker"):
     feature_columns = [
         "normalization_score_msbuddy","normalization_score_msfinder","normalization_score_sirius",
         "normalization_score_diff_msbuddy","normalization_score_diff_msfinder","normalization_score_diff_sirius",
@@ -111,24 +111,47 @@ def aggregate_probability_with_rank(
     )
 
 def formula_machine_input(df):
-    for tool in ['msfinder', 'sirius', 'msbuddy']:
-        tool_mask = df['tool_name'] == tool
-        df.loc[tool_mask, f'normalization_score_{tool}'] = df.loc[tool_mask, "Score_NZ"]
-        df.loc[tool_mask, f"normalization_score_diff_{tool}"] = df.loc[tool_mask, "Score_NZ_diff"]
-        df.loc[tool_mask, f"normalization_rank_{tool}"] = df.loc[tool_mask, "normalized_rank"]
+    df = df.copy()
+
+    df["adduct"] = (
+        df["adduct"]
+        .fillna("")
+        .astype(str)
+        .replace({"[M+CO2]-": "[M+FA-H]-"})
+    )
+
+    adduct_list = [
+        '[M+H]+', '[M+Na]+', '[M+NH4]+',
+        '[M-H]-', '[M+Cl]-', '[M+FA-H]-'
+    ]
 
     base_columns = ['filename', 'adduct', 'formula']
     score_cols = ["Score_NZ", "Score_NZ_diff", "normalized_rank"]
-    long_df = df[base_columns + ['tool_name'] + score_cols].copy()
+
+    long_df = df[
+        base_columns + ['tool_name'] + score_cols
+    ].copy()
+
     wide_df = long_df.pivot_table(
-        index = base_columns,
-        columns = 'tool_name',
-        values = score_cols,
+        index=base_columns,
+        columns='tool_name',
+        values=score_cols,
         aggfunc='max'
-        )
-    
+    )
+
+    # カラム名の対応
+    score_name_map = {
+        "Score_NZ": "normalization_score",
+        "Score_NZ_diff": "normalization_score_diff",
+        "normalized_rank": "normalization_rank",
+    }
+
     # flatten MultiIndex columns
-    wide_df.columns = [f'{score}_{tool}' for score, tool in wide_df.columns]
+    wide_df.columns = [
+        f'{score_name_map[score]}_{tool}'
+        for score, tool in wide_df.columns
+    ]
+
     wide_df = wide_df.reset_index()
     wide_df = wide_df.fillna(0)
 
@@ -137,6 +160,29 @@ def formula_machine_input(df):
         .apply(lambda x: ','.join(sorted(', '.join(x).split(','))))
         .reset_index()
     )
-    wide_df = wide_df.merge(used_tools_df, on=base_columns, how='left')
+
+    wide_df = wide_df.merge(
+        used_tools_df,
+        on=base_columns,
+        how='left'
+    )
+
+    for ad in adduct_list:
+        ad_norm = (
+            ad.replace("+", "plus")
+              .replace("-", "minus")
+              .replace("[", "")
+              .replace("]", "")
+        )
+        col_name = f"adduct_{ad_norm}"
+
+        wide_df[col_name] = (
+            wide_df['adduct']
+            .str.replace("+", "plus", regex=False)
+            .str.replace("-", "minus", regex=False)
+            .str.replace("[", "", regex=False)
+            .str.replace("]", "", regex=False)
+            == ad_norm
+        ).astype(int)
 
     return wide_df
