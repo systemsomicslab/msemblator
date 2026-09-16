@@ -25,7 +25,7 @@ def filtering_library_by_formula_index(library_index, target_formula):
 
 def load_library(library_path, target_formulas=None):
     """Index library rows, optionally retaining only requested formulas."""
-    with open(library_path, "r") as f:
+    with open(library_path, "r", newline="", encoding="utf-8") as f:
         reader = csv.reader(f, delimiter="|")
         headers = next(reader)
         formula_idx = headers.index("MolecularFormula") 
@@ -54,8 +54,8 @@ def process_spectrum(spectrum, parameter_file, output_dir, library, params=None)
         if "FORMULA" in spectrum:
             filtered = filtering_library_by_formula_index(library, spectrum.get("FORMULA"))
             library_file = os.path.join(output_dir, f"{spectrum['PeakListPath']}_library.txt")
-            with open(library_file, "w") as f:
-                writer = csv.writer(f, delimiter="|")
+            with open(library_file, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f, delimiter="|", lineterminator="\n")
                 writer.writerows(filtered)
 
         # Write parameter file

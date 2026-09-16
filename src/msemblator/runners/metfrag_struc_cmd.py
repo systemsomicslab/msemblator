@@ -17,7 +17,7 @@ def clean_psv_file(psv_file):
     cleaned_rows = []
 
     # Read the PSV file and filter out empty rows
-    with open(psv_file, 'r') as file:
+    with open(psv_file, 'r', newline='', encoding='utf-8') as file:
         reader = csv.reader(file, delimiter='|')
         headers = next(reader)  # Keep the header row
         cleaned_rows.append(headers)
@@ -28,8 +28,8 @@ def clean_psv_file(psv_file):
             cleaned_rows.append(row)
 
     # Write the cleaned data back to the same file
-    with open(psv_file, 'w', newline='') as file:
-        writer = csv.writer(file, delimiter='|')
+    with open(psv_file, 'w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file, delimiter='|', lineterminator='\n')
         writer.writerows(cleaned_rows)
 
     print(f"Cleaned PSV file: {psv_file}")
