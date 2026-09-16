@@ -1,11 +1,12 @@
 ﻿import os
-import csv
 import logging
 from tqdm import tqdm
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
+from contextlib import closing
 from msemblator.chemistry.chem_data import formula_to_dict, calc_exact_mass
+from msemblator.runners.metfrag_psv import read_psv, read_header, validate_row, write_psv
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -25,15 +26,13 @@ def filtering_library_by_formula_index(library_index, target_formula):
 
 def load_library(library_path, target_formulas=None):
     """Index library rows, optionally retaining only requested formulas."""
-    with open(library_path, "r", newline="", encoding="utf-8") as f:
-        reader = csv.reader(f, delimiter="|")
-        headers = next(reader)
+    with closing(read_psv(library_path)) as reader:
+        headers = read_header(reader, library_path)
         formula_idx = headers.index("MolecularFormula") 
 
         index = defaultdict(list)
-        for row in reader:
-            if not row:
-                continue
+        for line_number, row in reader:
+            row = validate_row(row, headers, library_path, line_number)
             formula = row[formula_idx]
             if target_formulas is None or formula in target_formulas:
                 index[formula].append(row)
@@ -54,9 +53,7 @@ def process_spectrum(spectrum, parameter_file, output_dir, library, params=None)
         if "FORMULA" in spectrum:
             filtered = filtering_library_by_formula_index(library, spectrum.get("FORMULA"))
             library_file = os.path.join(output_dir, f"{spectrum['PeakListPath']}_library.txt")
-            with open(library_file, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f, delimiter="|", lineterminator="\n")
-                writer.writerows(filtered)
+            write_psv(library_file, filtered[0], filtered[1:])
 
         # Write parameter file
         if params is None:
@@ -85,6 +82,7 @@ def process_spectrum(spectrum, parameter_file, output_dir, library, params=None)
 
     except Exception as e:
         logging.error(f"Error processing spectrum {spectrum.get('PeakListPath', 'Unknown')}: {e}")
+        raise
 
 
 # Keep the existing tuple-based entry point available.

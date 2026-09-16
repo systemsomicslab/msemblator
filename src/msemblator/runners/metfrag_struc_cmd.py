@@ -1,12 +1,14 @@
 ﻿import subprocess
 import os
 import glob
-import csv
+from contextlib import closing
+from msemblator.runners.metfrag_psv import read_psv, read_header, validate_row, write_psv
 from tqdm import tqdm
 
 def clean_psv_file(psv_file):
     """
-    Cleans a PSV (Pipe Separated Values) file by removing empty rows.
+    Removes blank rows and normalizes name newlines for MetFrag's PSV reader.
+    Rejects malformed rows before overwriting the file.
 
     Args:
         psv_file (str): Path to the PSV file to clean.
@@ -14,23 +16,10 @@ def clean_psv_file(psv_file):
     Returns:
         None
     """
-    cleaned_rows = []
-
-    # Read the PSV file and filter out empty rows
-    with open(psv_file, 'r', newline='', encoding='utf-8') as file:
-        reader = csv.reader(file, delimiter='|')
-        headers = next(reader)  # Keep the header row
-        cleaned_rows.append(headers)
-
-        for row in reader:
-            if not row or all(cell.strip() == '' for cell in row):
-                continue  # Skip empty rows
-            cleaned_rows.append(row)
-
-    # Write the cleaned data back to the same file
-    with open(psv_file, 'w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file, delimiter='|', lineterminator='\n')
-        writer.writerows(cleaned_rows)
+    with closing(read_psv(psv_file)) as reader:
+        headers = read_header(reader, psv_file)
+        cleaned_rows = [validate_row(row, headers, psv_file, line) for line, row in reader]
+    write_psv(psv_file, headers, cleaned_rows)
 
     print(f"Cleaned PSV file: {psv_file}")
 
@@ -44,21 +33,29 @@ def run_metfrag_command(metfrag_dir):
     Returns:
         None
     """
+    metfrag_dir = os.path.abspath(metfrag_dir)
     # Define the path to the MetFrag JAR file
     metfrag_jar = os.path.join(metfrag_dir, 'MetFragCommandLine-2.5.0.jar')
 
     # Collect all parameter files in the directory
     parameter_files = glob.glob(os.path.join(metfrag_dir, 'parameter_*.txt'))
 
-    # Clean all library files before running MetFrag
-    psv_files = glob.glob(os.path.join(metfrag_dir, '*_library.txt'))
-    for psv_file in psv_files:
+    # Validate the databases actually referenced by the parameters, including
+    # custom filenames. Relative database paths are resolved against Java's cwd.
+    psv_files = set()
+    for parameter_file in parameter_files:
+        with open(parameter_file, encoding='utf-8-sig') as file:
+            for line in file:
+                key, separator, value = line.partition('=')
+                if separator and key.strip().lower() == 'localdatabasepath':
+                    psv_files.add(os.path.join(metfrag_dir, value.strip()))
+    for psv_file in sorted(psv_files):
         clean_psv_file(psv_file)
 
     # Run MetFrag for each parameter file
     with tqdm(total=len(parameter_files), desc="MetFrag Processing", unit="file") as pbar:
         for parameter_file in parameter_files:
-            cmd = ["java", "-jar", metfrag_jar, parameter_file]
+            cmd = ["java", "-Dfile.encoding=UTF-8", "-jar", metfrag_jar, parameter_file]
 
             try:
                 with subprocess.Popen(
