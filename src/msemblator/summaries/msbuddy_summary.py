@@ -16,7 +16,7 @@ def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df,
     buddy_result['Scan_ID'] = buddy_result['Scan_ID'].astype(str)
     buddy_result.rename(columns={"Formula": "formula", "Scan_ID": "filename"}, inplace=True)
     buddy_result["Estimated_FDR_2"] = 1 - buddy_result["Estimated_FDR"]
-    buddy_result["score_diff"] = 0  
+    buddy_result["score_diff"] = 0
     
     mask = (buddy_result["Rank"] + 1 == buddy_result["Rank"].shift(-1).fillna(0).astype(int))
     buddy_result.loc[mask, "score_diff"] = (
@@ -39,8 +39,12 @@ def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df,
     filtered_df["adduct"] = ""
     filtered_df['adduct'] = filtered_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
     
-    buddy_score_calc_df = filtered_df[["filename", "adduct", "rank", "formula", "Score_NZ", "Score_NZ_diff"]]
-    buddy_score_calc_df["tool_name"] = "buddy"
+    buddy_score_calc_df = filtered_df[
+        ["filename", "adduct", "rank", "formula", "Score_NZ", "Score_NZ_diff"]
+    ].copy()
+    # Keep the tool identifier consistent with formula_machine_input() and the
+    # ranker feature names (normalization_*_msbuddy).
+    buddy_score_calc_df["tool_name"] = "msbuddy"
     buddy_score_calc_df['Used_tools'] = buddy_score_calc_df["rank"].apply(lambda r: f"msbuddy_Rank:{r}")
     
     buddy_score_calc_df['adduct'] = buddy_score_calc_df['filename'].map(name_adduct_df.set_index('filename')['adduct'])
