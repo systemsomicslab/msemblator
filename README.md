@@ -1,4 +1,4 @@
-# MS-Emblator 2026.7.23
+# MS-Emblator 2026.10.28
 
 MS-Emblator is a metabolomics annotation pipeline that integrates predictions
 from multiple in-silico tools and applies ensemble-learning models to produce
