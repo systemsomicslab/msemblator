@@ -46,7 +46,7 @@ def process_spectrum(spectrum, parameter_file, output_dir, library, params=None)
         # Write peak list file
         if "PeakListPath" in spectrum and "m/z" in spectrum:
             peak_list_file = os.path.join(output_dir, f"{spectrum['PeakListPath']}_peaklist.txt")
-            with open(peak_list_file, "w") as f:
+            with open(peak_list_file, "w", encoding="utf-8") as f:
                 f.write("\n".join(spectrum["m/z"]))
 
         # Write filtered library
@@ -57,11 +57,11 @@ def process_spectrum(spectrum, parameter_file, output_dir, library, params=None)
 
         # Write parameter file
         if params is None:
-            with open(parameter_file, "r") as f:
+            with open(parameter_file, "r", encoding="utf-8") as f:
                 params = f.readlines()
 
         param_output_file = os.path.join(output_dir, f"parameter_{spectrum['PeakListPath']}.txt")
-        with open(param_output_file, "w") as f:
+        with open(param_output_file, "w", encoding="utf-8") as f:
             for line in params:
                 lower = line.lower()
                 if lower.startswith("neutralprecursormolecularformula"):
@@ -100,7 +100,7 @@ def creat_metfrag_file(msp_file, parameter_file, output_dir, library_path, *, ma
     is_in_peaks = False
 
     # Parse MSP file line by line 
-    with open(msp_file, "r") as f:
+    with open(msp_file, "r", encoding="utf-8") as f:
         for line in tqdm(f, desc="Reading MSP file lines", unit="line"):
             stripped_line = line.strip().lower()
             if not stripped_line:
@@ -130,7 +130,7 @@ def creat_metfrag_file(msp_file, parameter_file, output_dir, library_path, *, ma
 
     target_formulas = {s["FORMULA"] for s in spectra if "FORMULA" in s}
     library = load_library(library_path, target_formulas)
-    with open(parameter_file, "r") as f:
+    with open(parameter_file, "r", encoding="utf-8") as f:
         params = tuple(f.readlines())
     os.makedirs(output_dir, exist_ok=True)
 

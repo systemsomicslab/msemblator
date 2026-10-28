@@ -17,8 +17,10 @@ def process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_d
         sirius6_df['filename'] = sirius6_df['mappingFeatureId'].str.split('_').str[-1]
     except Exception as e:
         print(f"Error reading {sirius_paths}: {e}")
-    
+        return summary_df, score_df
+
     if sirius6_df.empty:
+        print(f"SIRIUS output is empty: {sirius_paths}")
         return summary_df, score_df
 
     score_column = "SiriusScore" if "SiriusScore" in sirius6_df.columns else "score"

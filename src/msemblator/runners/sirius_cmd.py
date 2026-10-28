@@ -93,7 +93,7 @@ def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path, config):
         atoms_detectable = "B,Cl,Br,Se,S"
         atoms_enforced = "HCNOF[5]PI[5]"
     else:
-        atoms_detectable = "B,Se,S"
+        atoms_detectable = "S"
         atoms_enforced = "HCNOP"
 
 

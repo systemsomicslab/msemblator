@@ -99,6 +99,9 @@ def process_sirius_output(
     sirius6_df = sirius6_df.dropna(
         subset=["filename", "structurePerIdRank", "CSI:FingerIDScore"]
     ).copy()
+    if sirius6_df.empty:
+        print(f"SIRIUS output has no scored candidates: {sirius_path}")
+        return summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df
     sirius6_df["rank"] = sirius6_df["structurePerIdRank"].astype(int)
 
     # Sort before calculating differences

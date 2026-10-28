@@ -20,7 +20,7 @@ def convert_msp_to_mgf(file_path, output_file_path=None):
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Input MSP file not found: {file_path}")
 
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
 
         spectra = []
@@ -79,7 +79,7 @@ def convert_msp_to_mgf(file_path, output_file_path=None):
         mgf_content = "\n".join(mgf_data)
 
         if output_file_path:
-            with open(output_file_path, 'w') as file:
+            with open(output_file_path, 'w', encoding='utf-8') as file:
                 file.write(mgf_content)
 
         return mgf_content

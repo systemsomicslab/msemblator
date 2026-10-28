@@ -47,6 +47,9 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
 
     # Combine all files into a single DataFrame
     combined_data = pd.concat(data_frames, ignore_index=True)
+    if combined_data.empty:
+        print(f"MetFrag output is empty: {metfrag_folder}")
+        return summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df
 
     # Assign rank
     combined_data["rank"] = combined_data.groupby("filename").cumcount() + 1

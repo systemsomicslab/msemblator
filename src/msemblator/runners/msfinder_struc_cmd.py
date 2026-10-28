@@ -1,5 +1,6 @@
 ﻿import subprocess
 import os
+import glob
 import sys
 from msemblator.chemistry.convert_struc_data_type import modify_msfinder_config_in_place
 from pathlib import Path
@@ -14,8 +15,7 @@ def run_msfinder(msfinder_directory, input_path, output_path, method_path, libra
     msfinder_exe = os.path.join(msfinder_directory, "MsfinderConsoleApp.exe")
 
     if not os.path.exists(msfinder_exe):
-        print(f"Error: Executable not found at {msfinder_exe}")
-        return
+        raise FileNotFoundError(f"MS-FINDER executable not found: {msfinder_exe}")
 
     # Prepare command
     command = [
@@ -26,14 +26,20 @@ def run_msfinder(msfinder_directory, input_path, output_path, method_path, libra
         "-m", method_path
     ]
 
+    # MS-FINDER 3.61 exits with code 1 even after a successful run, so success is
+    # judged by the result files it writes, not by the exit code.
+    results_before = set(glob.glob(os.path.join(output_path, "*result*.txt")))
     try:
         with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
             for line in proc.stdout:
                 print(line, end="")
-            proc.wait()
+            return_code = proc.wait()
+        if not set(glob.glob(os.path.join(output_path, "*result*.txt"))) - results_before:
+            raise RuntimeError(f"MS-FINDER wrote no result files (exit code {return_code}).")
 
     except Exception as e:
         print(f"An error occurred during MS-FINDER execution: {e}")
+        raise
 
 def extract_formulas_from_msp(msp_path):
     msp_path = Path(msp_path)

@@ -52,7 +52,8 @@ def run_metfrag_command(metfrag_dir):
     for psv_file in sorted(psv_files):
         clean_psv_file(psv_file)
 
-    # Run MetFrag for each parameter file
+    # Run MetFrag for each parameter file; one failure does not skip the rest.
+    failed_files = []
     with tqdm(total=len(parameter_files), desc="MetFrag Processing", unit="file") as pbar:
         for parameter_file in parameter_files:
             cmd = ["java", "-Dfile.encoding=UTF-8", "-jar", metfrag_jar, parameter_file]
@@ -63,14 +64,23 @@ def run_metfrag_command(metfrag_dir):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
+                    # Undecodable log bytes must not turn a successful run into a failure.
+                    errors="replace",
                     cwd=metfrag_dir
                 ) as proc:
                     stdout, stderr = proc.communicate()
                     # Handle errors and warnings
                     if proc.returncode != 0:
                         print(f"Error processing {parameter_file}:\n{stderr}")
+                        failed_files.append(parameter_file)
 
             except Exception as e:
                 print(f"Exception occurred while running MetFrag for {parameter_file}: {e}")
+                failed_files.append(parameter_file)
             finally:
                 pbar.update(1)
+
+    if failed_files:
+        raise RuntimeError(
+            f"MetFrag failed for {len(failed_files)} of {len(parameter_files)} parameter files."
+        )

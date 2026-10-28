@@ -3,12 +3,13 @@ import os
 import joblib
 import pandas as pd
 from msemblator.chemistry.convert_struc_data_type import convert_to_shortinchikey
-from catboost import CatBoostRanker
+from msemblator.paths import find_ranker_model
+from msemblator.scoring.calculating_score import sort_by_score_and_tool_support
 from rdkit import Chem
 from rdkit.Chem import inchi
 
 
-def predict_and_append_rank(df, machine_dir, model_type="catboost_ranker"):
+def predict_and_append_rank(df, machine_dir):
     feature_columns = [
         "normalization_score_metfrag",
         "normalization_score_msfinder",
@@ -30,15 +31,9 @@ def predict_and_append_rank(df, machine_dir, model_type="catboost_ranker"):
     df_original = df.copy()
     X = df.reindex(columns=feature_columns, fill_value=0).fillna(0)
 
-    if model_type == "catboost_ranker":
-        model_path = os.path.join(machine_dir, "catboostranker_final_all.pkl")
-        model = joblib.load(model_path)
-    elif model_type == "lgbm_ranker":
-        model_path = os.path.join(machine_dir, "lgbmranker_final_all.pkl")
-        model = joblib.load(model_path)
-    else:
-        model_path = os.path.join(machine_dir, "xgbranker_final_all.pkl")
-        model = joblib.load(model_path)
+    model_path = find_ranker_model(machine_dir)
+    print(f"Structure ranking model: {model_path.name}")
+    model = joblib.load(model_path)
 
     df_original["rank_score"] = model.predict(X)
     return df_original
@@ -83,10 +78,7 @@ def aggregate_probability_with_rank(
           .agg(**agg_kwargs)
     )
 
-    grouped = grouped.sort_values(
-        group_cols + ["rank_score"],
-        ascending=[True] * len(group_cols) + [False]
-    ).reset_index(drop=True)
+    grouped = sort_by_score_and_tool_support(grouped, group_cols)
 
     grouped["rank"] = grouped.groupby(group_cols, dropna=False).cumcount() + 1
 

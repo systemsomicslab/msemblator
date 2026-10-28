@@ -82,7 +82,7 @@ def read_msp(file_path):
     Returns:
         dict: A dictionary where keys are sanitized file names and values are the formatted MSP content.
     """
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding='utf-8') as file:
         lines = file.readlines()
 
     split_files = {}

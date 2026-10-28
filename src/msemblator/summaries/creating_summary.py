@@ -31,6 +31,9 @@ def creating_output_summary(input_msp, sirius_folder, msfinder_file_path, buddy_
     # msbuddy summuary
     buddy_formula_df, score_df = process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df, score_df, top_n)
 
+    # A tool without output contributes no rows; its ranking features are filled with 0.
+    if score_df.empty:
+        raise RuntimeError("No formula candidates from any tool (SIRIUS, MS-FINDER, msbuddy).")
     wide_df = formula_machine_input(score_df)
     calc_score_df = predict_and_append(wide_df, machine_dir)
     # Fix rank_score data type

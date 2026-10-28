@@ -71,9 +71,9 @@ def modify_msfinder_config_in_place(method_path, librarypath, config):
         "Icheck=": f"Icheck={str(elements)}\n",
         "UserDefinedDbFilePath=": f"UserDefinedDbFilePath={librarypath}\n"
     }
-    with open(method_path, 'r') as file:
+    with open(method_path, 'r', encoding='utf-8') as file:
         lines = file.readlines()
-    with open(method_path, 'w') as file:
+    with open(method_path, 'w', encoding='utf-8') as file:
         for line in lines:
             replaced = False
             for key, value in replace_map.items():

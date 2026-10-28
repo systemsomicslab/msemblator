@@ -31,6 +31,9 @@ def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df,
         # Return the original DataFrames unchanged if no files are found
         return summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df
     msfinder_output_combined = pd.concat([pd.read_table(file_path) for file_path in file_paths], ignore_index=True)
+    if msfinder_output_combined.empty:
+        # MS-FINDER ran but found no structure candidates
+        return summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df
 
     # Extract filename without extension
     msfinder_output_combined["filename"] = msfinder_output_combined["File name"].astype(str).apply(lambda x: x.split('.')[0])

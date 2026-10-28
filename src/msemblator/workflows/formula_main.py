@@ -5,6 +5,7 @@ import pandas as pd
 import time
 import glob
 import yaml
+import logging
 from msemblator.formats.splitting_msp import read_msp
 from msemblator.formats.msp_to_mgf import convert_msp_to_mgf, split_mgf_by_adduct_in_memory
 from msemblator.formats.msp_to_ms import convert_msp_file_to_ms
@@ -15,7 +16,8 @@ from msemblator.summaries.creating_summary import creating_output_summary
 from msemblator.chemistry.converting_data_type import generate_unique_filename, ClippingTransformer, modify_msfinder_config_in_place
 from msemblator.paths import FORMULA_MODEL_DIR, MSFINDER_DIR, PARAMETER_FILE, SIRIUS_DIR, WORK_DIR, MSFINDER_CONFIG_DIR, ensure_runtime_directories
 
-def formula_elucidation(input_msp_path, summary_output_dir, name_df):
+def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_steps=None):
+    """Run formula elucidation; names of failed tools are appended to failed_steps."""
     print("Running formula elucidation")
 
     ensure_runtime_directories()
@@ -41,7 +43,7 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
     parameter_path = str(PARAMETER_FILE)
 
     def load_parameters(param_path):
-        with open(param_path, 'r') as file:
+        with open(param_path, 'r', encoding='utf-8') as file:
             params = yaml.safe_load(file)
         return params
     config = load_parameters(parameter_path)
@@ -91,20 +93,36 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df):
         save_file(output_file_path, content)
     print(f"Saved MGF files for adducts: {list(adduct_data.keys())}")
 
+    # A failing tool does not stop the others; its ranking features become 0.
+    if failed_steps is None:
+        failed_steps = []
+
     # 4. Run SIRIUS processing.
     print("SIRIUS processing start")
-    run_sirius(sirius_folder, ms_output, sirius_path, config)
+    try:
+        run_sirius(sirius_folder, ms_output, sirius_path, config)
+    except Exception as e:
+        logging.error(f"SIRIUS processing failed: {e}")
+        failed_steps.append("SIRIUS")
     print("SIRIUS processing complete")
 
     # 5. Run MS-FINDER processing.
     print("MS-FINDER processing start")
-    modify_msfinder_config_in_place(msfinder_method_path, config)
-    run_formula_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_method_path)
+    try:
+        modify_msfinder_config_in_place(msfinder_method_path, config)
+        run_formula_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_method_path)
+    except Exception as e:
+        logging.error(f"MS-FINDER processing failed: {e}")
+        failed_steps.append("MS-FINDER")
     print("MS-FINDER processing complete")
 
     # 6. Run Msbuddy processing.
     print("msbuddy processing start")
-    run_msbuddy(mgf_folder, buddy_folder, config)
+    try:
+        run_msbuddy(mgf_folder, buddy_folder, config)
+    except Exception as e:
+        logging.error(f"msbuddy processing failed: {e}")
+        failed_steps.append("msbuddy")
     print("msbuddy processing complete")
 
     # 7. Generate summary output.

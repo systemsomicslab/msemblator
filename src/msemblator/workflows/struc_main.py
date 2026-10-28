@@ -45,7 +45,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
     machine_dir = str(STRUCTURE_MODEL_DIR)
     parameter_path = str(PARAMETER_FILE)
     def load_parameters(param_path):
-        with open(param_path, 'r') as file:
+        with open(param_path, 'r', encoding='utf-8') as file:
             params = yaml.safe_load(file)
         return params
     config = load_parameters(parameter_path)
@@ -62,6 +62,9 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
             os.makedirs(folder)
 
 
+    # A failing tool does not stop the others; failures are returned to the caller.
+    failed_steps = []
+
     # SIRIUS Processing
     sirius_start_time = time.time()
     print("SIRIUS processing start")
@@ -72,6 +75,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
         run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_search_db, config)
     except Exception as e:
         logging.error(f"SIRIUS processing failed: {e}")
+        failed_steps.append("SIRIUS")
     sirius_end_time = time.time()
     print("SIRIUS processing complete")
     logging.info(f"SIRIUS processing time: {sirius_end_time - sirius_start_time:.2f} seconds")
@@ -79,27 +83,29 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
     # MetFrag Processing
     metfrag_start_time = time.time()
     print("MetFrag processing start")
-    with open(os.path.join(metfrag_parameter_dir, "example_paramater.txt"), 'r') as file:
-        lines = file.readlines()
-    with open(os.path.join(metfrag_run_dir, "example_paramater.txt"), 'w') as file:
-        for line in lines:
-            if line.startswith('FragmentPeakMatchAbsoluteMassDeviation'):
-                line = f'FragmentPeakMatchAbsoluteMassDeviation = {config["structure_prediction"]["metfrag"]["MS2_Da"]}\n'
-            elif line.startswith('FragmentPeakMatchRelativeMassDeviation'):
-                line = f'FragmentPeakMatchRelativeMassDeviation = {config["structure_prediction"]["metfrag"]["MS2_ppm"]}\n'
-            file.write(line)
-    
-
+    metfrag_template_path = os.path.join(metfrag_run_dir, "example_paramater.txt")
     try:
+        with open(os.path.join(metfrag_parameter_dir, "example_paramater.txt"), 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+        with open(metfrag_template_path, 'w', encoding='utf-8') as file:
+            for line in lines:
+                if line.startswith('FragmentPeakMatchAbsoluteMassDeviation'):
+                    line = f'FragmentPeakMatchAbsoluteMassDeviation = {config["structure_prediction"]["metfrag"]["MS2_Da"]}\n'
+                elif line.startswith('FragmentPeakMatchRelativeMassDeviation'):
+                    line = f'FragmentPeakMatchRelativeMassDeviation = {config["structure_prediction"]["metfrag"]["MS2_ppm"]}\n'
+                file.write(line)
+
+        # Use the template carrying the YAML tolerances written above.
         creat_metfrag_file(
-            input_msp, 
-            os.path.join(metfrag_parameter_dir, "example_paramater.txt"),
-            metfrag_run_dir, 
+            input_msp,
+            metfrag_template_path,
+            metfrag_run_dir,
             os.path.join(LIBRARY_DIR, "metfrag_StructureDB.txt")
         )
         run_metfrag_command(metfrag_run_dir)
     except Exception as e:
         logging.error(f"MetFrag processing failed: {e}")
+        failed_steps.append("MetFrag")
     print("MetFrag processing complete")
     metfrag_end_time = time.time()
     logging.info(f"MetFrag processing time: {metfrag_end_time - metfrag_start_time:.2f} seconds")
@@ -117,6 +123,7 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
         run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_structure_method_path, library_path, config) # Run structure prediction 
     except Exception as e:
         logging.error(f"MSFinder processing failed: {e}")
+        failed_steps.append("MS-FINDER")
     print("MS-FINDER processing complete")
     msfinder_end_time = time.time()
     logging.info(f"MSFinder processing time: {msfinder_end_time - msfinder_start_time:.2f} seconds")
@@ -142,7 +149,13 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
         summary_smiles_df.to_csv(os.path.join(summary_output_dir, summary_smiles_file), index=False)
         logging.info(f"Summary saved as: {result_score_file} and {summary_smiles_file}")
     except Exception as e:
+        # Without a summary there is no structure result, so stop here.
         logging.error(f"Summary generation failed: {e}")
+        raise
     summary_end_time = time.time()
     logging.info(f"Summary generation time: {summary_end_time - summary_start_time:.2f} seconds")
-    print("structure elucidation complete")
+    if failed_steps:
+        logging.warning(f"Structure elucidation completed with failed steps: {', '.join(failed_steps)}")
+    else:
+        print("structure elucidation complete")
+    return failed_steps

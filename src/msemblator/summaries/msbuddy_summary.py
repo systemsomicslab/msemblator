@@ -13,6 +13,9 @@ def process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df,
         return summary_df, score_df
     
     buddy_result = pd.concat([pd.read_csv(file) for file in buddy_files], ignore_index=True)
+    if buddy_result.empty:
+        print(f"msbuddy output is empty: {buddy_folder}")
+        return summary_df, score_df
     buddy_result['Scan_ID'] = buddy_result['Scan_ID'].astype(str)
     buddy_result.rename(columns={"Formula": "formula", "Scan_ID": "filename"}, inplace=True)
     buddy_result["Estimated_FDR_2"] = 1 - buddy_result["Estimated_FDR"]

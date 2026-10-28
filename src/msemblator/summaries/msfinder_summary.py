@@ -9,9 +9,13 @@ def process_msfinder_summary(msfinder_file_path, machine_dir, name_adduct_df, su
     # MS-FINDER summary
     file_paths = glob.glob(msfinder_file_path)
     if not file_paths:
-        raise FileNotFoundError(f"No files found matching pattern: {msfinder_file_path}")
-    
+        print(f"No MS-FINDER files found matching pattern: {msfinder_file_path}")
+        return summary_df, score_df
+
     msfinder_output_combined = pd.concat([pd.read_table(file) for file in file_paths], ignore_index=True)
+    if msfinder_output_combined.empty:
+        print(f"MS-FINDER output is empty: {msfinder_file_path}")
+        return summary_df, score_df
     msfinder_output_combined['File name'] = msfinder_output_combined['File name'].astype(str)
     msfinder_output_combined["name"] = msfinder_output_combined['File name'].str.split('.').str[0].str.split('_').str[-1]
     msfinder_output_combined["Rank"] = msfinder_output_combined.groupby("File name").cumcount() + 1

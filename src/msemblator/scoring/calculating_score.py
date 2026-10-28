@@ -2,10 +2,10 @@
 import os
 import joblib
 import pandas as pd
-from catboost import CatBoostRanker
+from msemblator.paths import find_ranker_model
 from msemblator.scoring.struc_score_normalization import ClippingTransformer
 
-def predict_and_append(df, machine_dir, model_type="xgb_ranker"):
+def predict_and_append(df, machine_dir):
     feature_columns = [
         "normalization_score_msbuddy","normalization_score_msfinder","normalization_score_sirius",
         "normalization_score_diff_msbuddy","normalization_score_diff_msfinder","normalization_score_diff_sirius",
@@ -17,19 +17,51 @@ def predict_and_append(df, machine_dir, model_type="xgb_ranker"):
     df_original = df.copy()
     X = df.reindex(columns=feature_columns, fill_value=0).fillna(0)
 
-    if model_type == "catboost_ranker":
-        model_path = os.path.join(machine_dir, "catboostranker_final_all.pkl")
-        model = CatBoostRanker()
-        model = joblib.load(model_path)
-    elif model_type == "lgbm_ranker":
-        model_path = os.path.join(machine_dir, "lgbmranker_final_all.pkl")
-        model = joblib.load(model_path)
-    else:
-        model_path = os.path.join(machine_dir, "xgbranker_final_all.pkl")
-        model = joblib.load(model_path)
+    model_path = find_ranker_model(machine_dir)
+    print(f"Formula ranking model: {model_path.name}")
+    model = joblib.load(model_path)
 
     df_original["rank_score"] = model.predict(X)
     return df_original
+
+def _tool_support(used_tool):
+    """Return (number of tools, best tool rank) from a "TOOL_Rank:n,..." string."""
+    tools = set()
+    best_rank = float("inf")
+    for token in str(used_tool).split(","):
+        name, separator, rank = token.strip().rpartition("_Rank:")
+        if not separator:
+            continue
+        tools.add(name)
+        try:
+            best_rank = min(best_rank, float(rank))
+        except ValueError:
+            pass
+    return len(tools), best_rank
+
+
+def sort_by_score_and_tool_support(grouped, group_cols):
+    """Sort candidates by rank_score; break ties by tool agreement, then best tool rank.
+
+    Without a tie-breaker, equal scores (e.g. a constant model output) keep the
+    alphabetical order left by groupby, which puts "B..." formulas first.
+    """
+    sort_cols = group_cols + ["rank_score"]
+    ascending = [True] * len(group_cols) + [False]
+    if "Used_Tool" in grouped.columns:
+        support = grouped["Used_Tool"].apply(_tool_support)
+        grouped = grouped.assign(
+            _n_tools=support.str[0],
+            _best_tool_rank=support.str[1],
+        )
+        sort_cols += ["_n_tools", "_best_tool_rank"]
+        ascending += [False, True]
+    return (
+        grouped.sort_values(sort_cols, ascending=ascending, kind="stable")
+        .drop(columns=["_n_tools", "_best_tool_rank"], errors="ignore")
+        .reset_index(drop=True)
+    )
+
 
 def aggregate_probability_with_rank(
     df: pd.DataFrame,
@@ -71,10 +103,7 @@ def aggregate_probability_with_rank(
           .agg(**agg_kwargs)
     )
 
-    grouped = grouped.sort_values(
-        group_cols + ["rank_score"],
-        ascending=[True] * len(group_cols) + [False]
-    ).reset_index(drop=True)
+    grouped = sort_by_score_and_tool_support(grouped, group_cols)
 
     grouped["rank"] = grouped.groupby(group_cols, dropna=False).cumcount() + 1
 

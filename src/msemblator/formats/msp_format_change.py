@@ -14,10 +14,10 @@ def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
     print("Loaded compounds:", rename.keys())
 
     # Process the MSP file and replace names and related fields
-    with open(input_msp_path, 'r') as msps:
+    with open(input_msp_path, 'r', encoding='utf-8') as msps:
         lines = msps.readlines()
 
-    with open(msp_output_path, 'w') as output_msp:
+    with open(msp_output_path, 'w', encoding='utf-8') as output_msp:
         current_name = None  # To track the current compound name
         add_entry = False  # Flag to determine if the current compound should be added
         temp_entry = []  # Temporary storage for the current entry lines
