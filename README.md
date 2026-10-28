@@ -30,12 +30,17 @@ MS-Emblator provides three analysis modes:
 
 | Mode | Analysis | Integrated tools | Formula required in input | SIRIUS account |
 | --- | --- | --- | --- | --- |
-| `1` | Formula elucidation | SIRIUS, MS-FINDER, msbuddy | No | No |
+| `1` | Formula elucidation | SIRIUS, MS-FINDER, msbuddy | No | Yes |
 | `2` | Formula and structure elucidation | SIRIUS, MS-FINDER, msbuddy, MetFrag | No | Yes |
 | `3` | Structure elucidation only | SIRIUS, MS-FINDER, MetFrag | Yes | Yes |
 
 Mode 2 is recommended when the input MSP file does not already contain reliable
 molecular formula annotations.
+
+> [!IMPORTANT]
+> SIRIUS 6 requires a login for every command-line run, including formula
+> prediction. A SIRIUS account is therefore needed in all modes. See
+> [SIRIUS login](#sirius-login).
 
 ## Requirements
 
@@ -107,6 +112,9 @@ Confirm that the command is available:
 ```powershell
 msemblator --help
 ```
+
+`-h` is a short form of `--help`. The help lists the modes, every argument, the
+SIRIUS login requirement, and example commands.
 
 If you do not want to install the command, the repository also provides a
 Windows launcher:
@@ -191,16 +199,44 @@ General command syntax:
 .\msemblator.cmd --input <input.msp> --output <output-directory> --mode <1|2|3>
 ```
 
+To show the available options and examples:
+
+```powershell
+.\msemblator.cmd --help    # or -h
+```
+
+### SIRIUS login
+
+SIRIUS 6 refuses to run from the command line until you are logged in, also
+for formula prediction in mode 1. Without a login, SIRIUS stops with
+`Login ERROR: Please Login to use the SIRIUS command line tool!` and MS-Emblator
+reports that `formula_identifications_top-100.tsv` was not written.
+
+There are two ways to log in:
+
+- Pass `--sirius_user` and `--sirius_pass`. MS-Emblator logs in before the first
+  SIRIUS step. This is required in modes 2 and 3 and optional in mode 1.
+- Log in once with SIRIUS itself. The login is stored in your user profile and
+  is reused by later runs, so mode 1 can then be run without credentials:
+
+  ```powershell
+  .\external\sirius\sirius.exe login -u "your_email@example.com" -p
+  .\external\sirius\sirius.exe login --show   # check the current login
+  ```
+
 ### Mode 1: formula elucidation only
 
 Use mode 1 to predict molecular formulas without running structure annotation.
-A SIRIUS account is not required.
+SIRIUS credentials are optional if you have already logged in with
+`sirius.exe login`; otherwise pass them as shown below.
 
 ```powershell
 .\msemblator.cmd `
   --input .\data\example.msp `
   --output .\results\formula_only `
-  --mode 1
+  --mode 1 `
+  --sirius_user "your_email@example.com" `
+  --sirius_pass "your_password"
 ```
 
 ### Mode 2: formula and structure elucidation
@@ -244,8 +280,9 @@ The same arguments can be passed to the bundled launcher:
 | `--input` | Yes | Path to the input MSP file |
 | `--output` | Yes | Directory in which summary CSV files are saved |
 | `--mode` | Yes | `1`: formula, `2`: formula and structure, `3`: structure |
-| `--sirius_user` | Modes 2 and 3 | SIRIUS account email or username |
-| `--sirius_pass` | Modes 2 and 3 | SIRIUS account password |
+| `--sirius_user` | Modes 2 and 3 (optional in mode 1) | SIRIUS account email or username |
+| `--sirius_pass` | Modes 2 and 3 (optional in mode 1) | SIRIUS account password |
+| `-h`, `--help` | No | Show the help message and exit |
 
 > [!CAUTION]
 > Supplying a password directly on the command line can expose it in shell
@@ -378,10 +415,17 @@ the [runtime asset layout](#runtime-assets). In particular, check:
 Run `java --version` and confirm that Java 21 or newer is available on `PATH`.
 Also confirm that `MetFragCommandLine-2.5.0.jar` is in `external/metfrag/`.
 
-### Modes 2 and 3 stop at SIRIUS
+### SIRIUS stops with `Login ERROR`
+
+SIRIUS is not logged in. Pass `--sirius_user` and `--sirius_pass`, or log in
+once with `sirius.exe login` as described in [SIRIUS login](#sirius-login).
+This also applies to mode 1.
+
+### SIRIUS fails in any mode
 
 Confirm that:
 
+- you are logged in to SIRIUS (see [SIRIUS login](#sirius-login));
 - the SIRIUS username and password are correct;
 - the machine can reach the SIRIUS web service;
 - `sirius.exe` and `sirius_structure_db.siriusdb` are in `external/sirius/`.
