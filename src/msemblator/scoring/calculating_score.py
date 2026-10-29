@@ -24,24 +24,29 @@ def predict_and_append(df, machine_dir):
     df_original["rank_score"] = model.predict(X)
     return df_original
 
-def _tool_support(used_tool):
-    """Return (number of tools, best tool rank) from a "TOOL_Rank:n,..." string."""
+def _tool_support(used_tool, preferred_tool=None):
+    """Return (number of tools, best tool rank, preferred tool rank) from a "TOOL_Rank:n,..." string."""
     tools = set()
     best_rank = float("inf")
+    preferred_rank = float("inf")
     for token in str(used_tool).split(","):
         name, separator, rank = token.strip().rpartition("_Rank:")
         if not separator:
             continue
         tools.add(name)
         try:
-            best_rank = min(best_rank, float(rank))
+            rank = float(rank)
         except ValueError:
-            pass
-    return len(tools), best_rank
+            continue
+        best_rank = min(best_rank, rank)
+        if name == preferred_tool:
+            preferred_rank = min(preferred_rank, rank)
+    return len(tools), best_rank, preferred_rank
 
 
-def sort_by_score_and_tool_support(grouped, group_cols):
-    """Sort candidates by rank_score; break ties by tool agreement, then best tool rank.
+def sort_by_score_and_tool_support(grouped, group_cols, preferred_tool=None):
+    """Sort candidates by rank_score; break ties by tool agreement, then best tool rank,
+    then the rank given by preferred_tool (e.g. "MS-FINDER").
 
     Without a tie-breaker, equal scores (e.g. a constant model output) keep the
     alphabetical order left by groupby, which puts "B..." formulas first.
@@ -49,16 +54,17 @@ def sort_by_score_and_tool_support(grouped, group_cols):
     sort_cols = group_cols + ["rank_score"]
     ascending = [True] * len(group_cols) + [False]
     if "Used_Tool" in grouped.columns:
-        support = grouped["Used_Tool"].apply(_tool_support)
+        support = grouped["Used_Tool"].apply(_tool_support, preferred_tool=preferred_tool)
         grouped = grouped.assign(
             _n_tools=support.str[0],
             _best_tool_rank=support.str[1],
+            _preferred_tool_rank=support.str[2],
         )
-        sort_cols += ["_n_tools", "_best_tool_rank"]
-        ascending += [False, True]
+        sort_cols += ["_n_tools", "_best_tool_rank", "_preferred_tool_rank"]
+        ascending += [False, True, True]
     return (
         grouped.sort_values(sort_cols, ascending=ascending, kind="stable")
-        .drop(columns=["_n_tools", "_best_tool_rank"], errors="ignore")
+        .drop(columns=["_n_tools", "_best_tool_rank", "_preferred_tool_rank"], errors="ignore")
         .reset_index(drop=True)
     )
 
@@ -103,7 +109,8 @@ def aggregate_probability_with_rank(
           .agg(**agg_kwargs)
     )
 
-    grouped = sort_by_score_and_tool_support(grouped, group_cols)
+    # MS-FINDER is the most accurate single tool for formula prediction.
+    grouped = sort_by_score_and_tool_support(grouped, group_cols, preferred_tool="MS-FINDER")
 
     grouped["rank"] = grouped.groupby(group_cols, dropna=False).cumcount() + 1
 
