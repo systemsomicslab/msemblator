@@ -1,4 +1,4 @@
-﻿__pycache__/
+__pycache__/
 *.py[cod]
 .venv/
 build/
@@ -14,6 +14,15 @@ buddy/
 msfinder/output/
 sirius/output/
 .env
+analysis/
+
+# Local notebook for generating labeled machine-learning input data.
+notebooks/generate_ml_input.ipynb
 
 # Large compound libraries are distributed via Zenodo.
+library/
 config/msfinder/coconutandBLEXP.txt
+
+# Local notebook for running MS-Emblator and analyzing results.
+/run_msemblator_analysis.ipynb
+/.ipynb_checkpoints/

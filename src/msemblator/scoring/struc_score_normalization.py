@@ -1,4 +1,4 @@
-﻿from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.base import TransformerMixin, BaseEstimator
 import numpy as np

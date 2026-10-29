@@ -1,4 +1,4 @@
-﻿import os
+import os
 import logging
 from tqdm import tqdm
 from functools import lru_cache

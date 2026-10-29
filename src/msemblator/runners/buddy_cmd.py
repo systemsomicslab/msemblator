@@ -1,4 +1,4 @@
-﻿import os
+import os
 import pandas as pd
 from msbuddy import Msbuddy, MsbuddyConfig, Adduct
 

@@ -1,4 +1,4 @@
-﻿import subprocess
+import subprocess
 import os
 import glob
 from contextlib import closing

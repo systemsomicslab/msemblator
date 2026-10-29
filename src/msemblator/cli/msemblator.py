@@ -1,4 +1,4 @@
-﻿import os
+import os
 import argparse
 import pandas as pd
 from msemblator.workflows.formula_main import formula_elucidation

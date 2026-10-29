@@ -1,4 +1,4 @@
-﻿import re
+import re
 
 def sanitize_filename(name, max_length=150):
     """

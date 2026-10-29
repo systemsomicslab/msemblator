@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 
 # Configure logging for error messages
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')

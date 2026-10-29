@@ -82,7 +82,7 @@ MS-Emblator uses the following third-party tools:
 
 The external programs, compound libraries, and trained scoring models are not
 stored in this Git repository. They are distributed separately through
-[Zenodo](https://zenodo.org/records/17490421).
+[Zenodo](https://zenodo.org/records/23721007).
 
 ## Installation
 
@@ -126,7 +126,7 @@ Windows launcher:
 ## Runtime assets
 
 Download the runtime asset archive from
-[Zenodo](https://zenodo.org/records/17490421), extract it, and arrange the
+[Zenodo](https://zenodo.org/records/23721007), extract it, and arrange the
 repository as shown below. Keep the directory and file names unchanged.
 
 ```text

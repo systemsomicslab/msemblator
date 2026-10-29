@@ -1,4 +1,4 @@
-﻿import pandas as pd
+import pandas as pd
 from rdkit import Chem
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler

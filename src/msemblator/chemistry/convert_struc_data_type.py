@@ -1,4 +1,4 @@
-﻿import pandas as pd
+import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import inchi
 from sklearn.preprocessing import MinMaxScaler

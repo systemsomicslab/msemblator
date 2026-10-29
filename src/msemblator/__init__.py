@@ -1,1 +1,1 @@
-﻿"""MS-Emblator metabolomics annotation package."""
+"""MS-Emblator metabolomics annotation package."""

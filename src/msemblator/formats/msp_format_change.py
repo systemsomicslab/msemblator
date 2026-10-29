@@ -1,4 +1,4 @@
-﻿import pandas as pd
+import pandas as pd
 import re
 import logging
 def msp_formula_changer(input_msp_path, formula_summary, msp_output_path):
