@@ -1,6 +1,5 @@
 import os
 import shutil
-import getpass
 import glob
 import pandas as pd
 import time
@@ -11,7 +10,7 @@ from msemblator.runners.metfrag_struc_cmd import run_metfrag_command
 from msemblator.formats.splitting_msp import read_msp
 from msemblator.runners.msfinder_struc_cmd import run_msfinder, process_folder
 from msemblator.formats.msp_to_ms import convert_msp_file_to_ms
-from msemblator.runners.sirius_struc_cmd import sirius_login, run_sirius_struc
+from msemblator.runners.sirius_struc_cmd import run_sirius_struc
 from msemblator.summaries.creating_struc_summary import struc_summary
 from msemblator.chemistry.converting_data_type import modify_msfinder_config_in_place
 from msemblator.utils.struc_utility import clear_folder, clear_folder_except, save_file, generate_unique_filename
@@ -19,7 +18,7 @@ from msemblator.scoring.struc_score_normalization import ClippingTransformer
 from msemblator.paths import METFRAG_DIR, METFRAG_CONFIG_DIR, LIBRARY_DIR, MSFINDER_DIR, MSFINDER_CONFIG_DIR, PARAMETER_FILE, SIRIUS_DIR, STRUCTURE_MODEL_DIR, WORK_DIR, ensure_runtime_directories
 
 # Clear required folders
-def structure_elucidation(input_msp, summary_output_dir, username, password, name_df):
+def structure_elucidation(input_msp, summary_output_dir, name_df):
     print("Running structure elucidation")
     # Set up logging configuration.
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -71,7 +70,6 @@ def structure_elucidation(input_msp, summary_output_dir, username, password, nam
     try:
         ms_file = convert_msp_file_to_ms(input_msp)
         save_file(sirius_inputdir, ms_file)
-        sirius_login(sirius_directory, username, password)
         run_sirius_struc(sirius_outputdir, sirius_inputdir, sirius_path, structure_search_db, config)
     except Exception as e:
         logging.error(f"SIRIUS processing failed: {e}")

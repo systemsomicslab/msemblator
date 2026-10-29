@@ -1,5 +1,6 @@
 import os
 import argparse
+import getpass
 import pandas as pd
 from msemblator.workflows.formula_main import formula_elucidation
 from msemblator.workflows.struc_main import structure_elucidation
@@ -39,16 +40,16 @@ def main():
         epilog=(
             "SIRIUS login:\n"
             "  SIRIUS 6 requires a login in every mode, including formula prediction.\n"
-            "  Modes 2 and 3 require --sirius_user and --sirius_pass. In mode 1 they are\n"
-            "  optional; without them, the login stored by 'sirius.exe login' is used.\n"
+            "  Recommended: log in once with 'sirius.exe login'; that login is reused.\n"
+            "  Otherwise give --sirius_user (or SIRIUS_USER). The password is read from\n"
+            "  SIRIUS_PASS or asked for at the prompt; --sirius_pass also works but is\n"
+            "  kept in shell history.\n"
             "\n"
             "examples (PowerShell):\n"
-            "  msemblator --input data\\example.msp --output results --mode 1 `\n"
-            "             --sirius_user your_email@example.com --sirius_pass your_password\n"
+            "  msemblator --input data\\example.msp --output results --mode 1\n"
             "  msemblator --input data\\example.msp --output results --mode 2 `\n"
-            "             --sirius_user your_email@example.com --sirius_pass your_password\n"
-            "  msemblator --input data\\formula_predicted.msp --output results --mode 3 `\n"
-            "             --sirius_user your_email@example.com --sirius_pass your_password"
+            "             --sirius_user your_email@example.com\n"
+            "  msemblator --input data\\formula_predicted.msp --output results --mode 3"
         ),
     )
 
@@ -58,9 +59,9 @@ def main():
     parser.add_argument("--mode", type=int, choices=[1, 2, 3], required=True,
                         help="1: Formula elucidation, 2: Both formula and structure, 3: Structure elucidation only")
     parser.add_argument("--sirius_user", metavar="USER",
-                        help="SIRIUS account email or username (required for mode 2 and 3; optional for mode 1)")
+                        help="SIRIUS account email or username (optional; defaults to SIRIUS_USER, then the stored login)")
     parser.add_argument("--sirius_pass", metavar="PASSWORD",
-                        help="SIRIUS account password (required for mode 2 and 3; optional for mode 1)")
+                        help="SIRIUS account password (optional; defaults to SIRIUS_PASS, then a prompt)")
 
     args = parser.parse_args()
     validate_runtime(args.mode)
@@ -82,22 +83,23 @@ def main():
     updated_data, name_df = convert_name_to_peakid(original_data)
     save_updated_msp(converted_msp_path, updated_data)
 
-    has_credentials = bool(args.sirius_user and args.sirius_pass)
-    if args.mode in (2, 3) and not has_credentials:
-        print("\nError: SIRIUS credentials are required for mode 2 and 3.")
-        return 1
-
-    # SIRIUS 6 requires a login even for formula prediction, so log in before the
-    # formula step. Without credentials, mode 1 relies on a stored `sirius login`.
-    if args.mode in (1, 2):
-        if has_credentials:
-            try:
-                sirius_login(str(SIRIUS_DIR), args.sirius_user, args.sirius_pass)
-            except RuntimeError as e:
-                print(f"\nError: {e}")
-                return 1
-        else:
-            print("\nNo SIRIUS credentials given; using the login stored by `sirius login`.")
+    # SIRIUS 6 requires a login in every mode, so log in once before any SIRIUS
+    # step. Without a user name, the login stored by `sirius.exe login` is used.
+    sirius_user = args.sirius_user or os.environ.get("SIRIUS_USER")
+    if sirius_user:
+        sirius_pass = args.sirius_pass or os.environ.get("SIRIUS_PASS")
+        if not sirius_pass:
+            sirius_pass = getpass.getpass(f"SIRIUS password for {sirius_user}: ")
+        if not sirius_pass:
+            print("\nError: no SIRIUS password given.")
+            return 1
+        try:
+            sirius_login(str(SIRIUS_DIR), sirius_user, sirius_pass)
+        except RuntimeError as e:
+            print(f"\nError: {e}")
+            return 1
+    else:
+        print("\nNo SIRIUS credentials given; using the login stored by `sirius.exe login`.")
 
     formula_failed_steps = []
     structure_failed_steps = []
@@ -110,12 +112,10 @@ def main():
             print("\nRunning both formula and structure elucidation...")
             formula_summary = formula_elucidation(converted_msp_path, output_dir, name_df, formula_failed_steps)
             msp_formula_changer(converted_msp_path, formula_summary, formula_fixed_msp_path)
-            structure_failed_steps = structure_elucidation(formula_fixed_msp_path, output_dir, args.sirius_user, args.sirius_pass,
-                                  name_df)
+            structure_failed_steps = structure_elucidation(formula_fixed_msp_path, output_dir, name_df)
         else:
             print("\nRunning structure elucidation only...")
-            structure_failed_steps = structure_elucidation(converted_msp_path, output_dir, args.sirius_user, args.sirius_pass,
-                                  name_df)
+            structure_failed_steps = structure_elucidation(converted_msp_path, output_dir, name_df)
 
     else:
         print("\nInvalid mode selected. Exiting.")
@@ -126,6 +126,9 @@ def main():
         print(f"\nError: formula elucidation completed with failed steps: {', '.join(formula_failed_steps)}")
     if structure_failed_steps:
         print(f"\nError: structure elucidation completed with failed steps: {', '.join(structure_failed_steps)}")
+    if "SIRIUS" in formula_failed_steps + structure_failed_steps:
+        print("If SIRIUS stopped with 'Login ERROR', log in again with "
+              "'sirius.exe login' or pass --sirius_user.")
     if formula_failed_steps or structure_failed_steps:
         return 1
     return 0

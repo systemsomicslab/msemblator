@@ -212,59 +212,64 @@ for formula prediction in mode 1. Without a login, SIRIUS stops with
 `Login ERROR: Please Login to use the SIRIUS command line tool!` and MS-Emblator
 reports that `formula_identifications_top-100.tsv` was not written.
 
-There are two ways to log in:
+There are two ways to log in. Both work in every mode.
 
-- Pass `--sirius_user` and `--sirius_pass`. MS-Emblator logs in before the first
-  SIRIUS step. This is required in modes 2 and 3 and optional in mode 1.
-- Log in once with SIRIUS itself. The login is stored in your user profile and
-  is reused by later runs, so mode 1 can then be run without credentials:
+- **Recommended:** log in once with SIRIUS itself. The login is stored in your
+  user profile and is reused by later runs, so no credentials are needed on the
+  MS-Emblator command line:
 
   ```powershell
   .\external\sirius\sirius.exe login -u "your_email@example.com" -p
   .\external\sirius\sirius.exe login --show   # check the current login
   ```
 
+- Give your account to MS-Emblator, which then logs in before the first SIRIUS
+  step. Pass `--sirius_user` (or set `SIRIUS_USER`). The password is taken from
+  `SIRIUS_PASS` if set; otherwise MS-Emblator asks for it at the prompt:
+
+  ```powershell
+  $env:SIRIUS_USER = "your_email@example.com"
+  $env:SIRIUS_PASS = "your_password"   # optional; omit to be asked instead
+  ```
+
+  `--sirius_pass` is still accepted, but a password typed on the command line
+  can remain in shell history.
+
 ### Mode 1: formula elucidation only
 
 Use mode 1 to predict molecular formulas without running structure annotation.
-SIRIUS credentials are optional if you have already logged in with
-`sirius.exe login`; otherwise pass them as shown below.
+The examples below assume that you have logged in with `sirius.exe login`; if
+not, add `--sirius_user "your_email@example.com"` (see
+[SIRIUS login](#sirius-login)).
 
 ```powershell
 .\msemblator.cmd `
   --input .\data\example.msp `
   --output .\results\formula_only `
-  --mode 1 `
-  --sirius_user "your_email@example.com" `
-  --sirius_pass "your_password"
+  --mode 1
 ```
 
 ### Mode 2: formula and structure elucidation
 
 Mode 2 performs the complete workflow and is recommended for MSP files without
-trusted molecular formulas. SIRIUS credentials are required.
+trusted molecular formulas.
 
 ```powershell
 .\msemblator.cmd `
   --input .\data\example.msp `
   --output .\results\formula_and_structure `
-  --mode 2 `
-  --sirius_user "your_email@example.com" `
-  --sirius_pass "your_password"
+  --mode 2
 ```
 
 ### Mode 3: structure elucidation only
 
-Use mode 3 when the input MSP file already contains molecular formulas. SIRIUS
-credentials are required.
+Use mode 3 when the input MSP file already contains molecular formulas.
 
 ```powershell
 .\msemblator.cmd `
   --input .\data\formula_predicted.msp `
   --output .\results\structure_only `
-  --mode 3 `
-  --sirius_user "your_email@example.com" `
-  --sirius_pass "your_password"
+  --mode 3
 ```
 
 The same arguments can be passed to the bundled launcher:
@@ -280,14 +285,14 @@ The same arguments can be passed to the bundled launcher:
 | `--input` | Yes | Path to the input MSP file |
 | `--output` | Yes | Directory in which summary CSV files are saved |
 | `--mode` | Yes | `1`: formula, `2`: formula and structure, `3`: structure |
-| `--sirius_user` | Modes 2 and 3 (optional in mode 1) | SIRIUS account email or username |
-| `--sirius_pass` | Modes 2 and 3 (optional in mode 1) | SIRIUS account password |
+| `--sirius_user` | No | SIRIUS account email or username. Defaults to `SIRIUS_USER`; without either, the login stored by `sirius.exe login` is used |
+| `--sirius_pass` | No | SIRIUS account password. Defaults to `SIRIUS_PASS`; without either, you are asked for it |
 | `-h`, `--help` | No | Show the help message and exit |
 
 > [!CAUTION]
-> Supplying a password directly on the command line can expose it in shell
-> history or process information. Use these commands only on a trusted machine
-> and clear sensitive command history when appropriate.
+> Supplying a password directly on the command line with `--sirius_pass` can
+> expose it in shell history or process information. Prefer `sirius.exe login`,
+> the password prompt, or `SIRIUS_PASS`.
 
 ## Output files
 
@@ -417,9 +422,9 @@ Also confirm that `MetFragCommandLine-2.5.0.jar` is in `external/metfrag/`.
 
 ### SIRIUS stops with `Login ERROR`
 
-SIRIUS is not logged in. Pass `--sirius_user` and `--sirius_pass`, or log in
-once with `sirius.exe login` as described in [SIRIUS login](#sirius-login).
-This also applies to mode 1.
+SIRIUS is not logged in, or the stored login has expired. Log in again with
+`sirius.exe login`, or pass `--sirius_user`, as described in
+[SIRIUS login](#sirius-login). This applies to every mode.
 
 ### SIRIUS fails in any mode
 
