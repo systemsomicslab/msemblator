@@ -1,0 +1,18 @@
+# Conda environment for MS-Emblator development
+#   Create : conda env create -f environment.yml
+#   Update : conda env update -f environment.yml --prune
+#   Use    : conda activate msemblator
+# Python packages are pinned in requirements.txt (installed via `pip install -e .`).
+name: msemblator
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - openjdk=21  # required by MetFrag
+  - pip
+  - setuptools<81  # wexpect imports pkg_resources (removed in setuptools 81)
+  - pip:
+      - -e .
+variables:
+  # Ignore packages in the user site-packages (%APPDATA%\Python) so the env stays isolated
+  PYTHONNOUSERSITE: "1"

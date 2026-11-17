@@ -23,6 +23,21 @@ def clean_psv_file(psv_file):
 
     print(f"Cleaned PSV file: {psv_file}")
 
+def find_java():
+    """
+    Returns the java executable, preferring JAVA_HOME over PATH.
+
+    conda's openjdk sets JAVA_HOME, but its Library\\bin\\java.exe launcher on PATH
+    fails with "failed to create process" when the env path contains spaces.
+    """
+    java_home = os.environ.get('JAVA_HOME')
+    if java_home:
+        name = 'java.exe' if os.name == 'nt' else 'java'
+        candidate = os.path.join(java_home, 'bin', name)
+        if os.path.isfile(candidate):
+            return candidate
+    return 'java'
+
 def run_metfrag_command(metfrag_dir):
     """
     Runs MetFrag for each parameter file in the specified directory.
@@ -54,9 +69,10 @@ def run_metfrag_command(metfrag_dir):
 
     # Run MetFrag for each parameter file; one failure does not skip the rest.
     failed_files = []
+    java = find_java()
     with tqdm(total=len(parameter_files), desc="MetFrag Processing", unit="file") as pbar:
         for parameter_file in parameter_files:
-            cmd = ["java", "-Dfile.encoding=UTF-8", "-jar", metfrag_jar, parameter_file]
+            cmd = [java, "-Dfile.encoding=UTF-8", "-jar", metfrag_jar, parameter_file]
 
             try:
                 with subprocess.Popen(

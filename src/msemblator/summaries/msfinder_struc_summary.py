@@ -1,4 +1,4 @@
-﻿# msfinder
+# msfinder
 import os
 import glob
 import pandas as pd
@@ -59,8 +59,8 @@ def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df,
     filtered_df.rename(columns={"Precursor type": "adduct"}, inplace=True)
 
     # Load score normalization pipelines
-    msfinder_score_pipeline_path = os.path.join(machine_dir, "pipeline_msfinder_score_diff.pkl")
-    msfinder_SD_pipeline_path = os.path.join(machine_dir, "pipeline_msfinder_structure_score.pkl")
+    msfinder_score_pipeline_path = os.path.join(machine_dir, "pipeline_msfinder_structure_score.pkl")
+    msfinder_SD_pipeline_path = os.path.join(machine_dir, "pipeline_msfinder_score_diff.pkl")
 
     score_pipeline = joblib.load(msfinder_score_pipeline_path)
     SD_pipeline = joblib.load(msfinder_SD_pipeline_path)
