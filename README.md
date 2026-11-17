@@ -107,6 +107,17 @@ python -m pip install --upgrade pip
 pip install -e .
 ```
 
+Alternatively, with conda, `environment.yml` creates an environment that also
+includes Java 21 (no separate Java installation needed) and installs MS-Emblator
+in editable mode:
+
+```powershell
+conda env create -f environment.yml
+conda activate msemblator
+```
+
+After changing `requirements.txt`, run `conda env update -f environment.yml --prune`.
+
 Confirm that the command is available:
 
 ```powershell
