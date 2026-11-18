@@ -2,7 +2,7 @@
 LewisAndSeniorCheck=True
 Ms1Tolerance=10
 IsotopicAbundanceTolerance=20
-MassToleranceType=Da
+MassToleranceType=ppm
 CommonRange=TRUE
 ExtendedRange=FALSE
 ExtremeRange=FALSE

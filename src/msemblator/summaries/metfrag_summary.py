@@ -4,6 +4,7 @@ import pandas as pd
 import joblib
 from functools import reduce
 from msemblator.chemistry.convert_struc_data_type import normalize_rank_score as normalize_rank_n
+from msemblator.chemistry.convert_struc_data_type import drop_duplicate_short_inchikey
 from msemblator.scoring.struc_score_normalization import ClippingTransformer
 
 def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df, 
@@ -50,6 +51,9 @@ def process_metfrag_output(metfrag_folder, machine_dir, name_adduct_df,
     if combined_data.empty:
         print(f"MetFrag output is empty: {metfrag_folder}")
         return summary_inchikey_df, summary_smiles_df, class_summary_df, smiles_score_df
+
+    # Keep only the best-ranked candidate for each short InChIKey (e.g. stereoisomers)
+    combined_data = drop_duplicate_short_inchikey(combined_data)
 
     # Assign rank
     combined_data["rank"] = combined_data.groupby("filename").cumcount() + 1

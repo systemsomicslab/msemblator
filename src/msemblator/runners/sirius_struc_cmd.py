@@ -46,6 +46,7 @@ def _run_sirius_capture(command, cwd):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        errors="replace",  # tool output may not be UTF-8 (e.g. cp932 on Japanese Windows)
         bufsize=1,
         cwd=cwd
     ) as proc:
@@ -109,6 +110,7 @@ def _ensure_custom_db_registered(sirius_path, structure_search_db):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        errors="replace",  # tool output may not be UTF-8 (e.g. cp932 on Japanese Windows)
         bufsize=1,
         cwd=os.path.dirname(sirius_path)
     ) as proc:
@@ -132,6 +134,7 @@ def _run_sirius_command(command, cwd, step_name, timeout_seconds=SIRIUS_COMMAND_
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        errors="replace",  # tool output may not be UTF-8 (e.g. cp932 on Japanese Windows)
         bufsize=1,
         cwd=cwd
     )

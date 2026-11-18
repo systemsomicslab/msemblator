@@ -115,7 +115,8 @@ def structure_elucidation(input_msp, summary_output_dir, name_df):
         split_data = read_msp(input_msp)
         for filename, content in split_data.items():
             save_file(os.path.join(msp_folder, f"{filename}.msp"), content)
-        run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_formula_method_path, '', config) # Run formula prediction
+        run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_formula_method_path, '', config,
+                     section="formula_prediction") # Run formula prediction
         process_folder(msp_folder) # Process the MSP files to extract formulas and prepare MS-FINDER input
         clear_folder(msfinder_folder) # Clear formula prediction results to prepare for structure prediction
         run_msfinder(msfinder_directory, msp_folder, msfinder_folder, msfinder_structure_method_path, library_path, config) # Run structure prediction 

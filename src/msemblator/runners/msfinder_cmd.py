@@ -18,7 +18,7 @@ def run_formula_msfinder(msfinder_directory, input_path, output_path, method_pat
     ]
 
     try:
-        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace", bufsize=1) as proc:
             for line in proc.stdout:
                 print(line, end="")
             proc.wait()

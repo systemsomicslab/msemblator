@@ -126,7 +126,7 @@ def run_sirius(sirius_outputdir, sirius_inputdir, sirius_path, config):
 
     try:
         output_lines = []
-        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace", bufsize=1) as proc:
             for line in proc.stdout:
                 output_lines.append(line)
                 print(line, end="")
