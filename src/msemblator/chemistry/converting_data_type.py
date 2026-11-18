@@ -4,6 +4,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.base import TransformerMixin, BaseEstimator
 import numpy as np
+from msemblator.chemistry.msfinder_method import apply_msfinder_settings
 import os
 
 class ClippingTransformer(BaseEstimator, TransformerMixin):
@@ -75,27 +76,5 @@ def extract_used_tooks(row):
     return ", ".join(tools)
 
 def modify_msfinder_config_in_place(method_path, config):
-    # extract config values
-    ms1_ppm = config['formula_prediction']['msfinder']['MS1_ppm']
-    ms2_ppm = config['formula_prediction']['msfinder']['MS2_ppm']
-    elements = config['formula_prediction']['msfinder']['halogen']
-    replace_map = {
-        "Ms1Tolerance=": f"Ms1Tolerance={ms1_ppm}\n",
-        "Ms2Tolerance=": f"Ms2Tolerance={ms2_ppm}\n",
-        "Fcheck=": f"Fcheck={str(elements)}\n",
-        "ClCheck=": f"ClCheck={str(elements)}\n",
-        "BrCheck=": f"BrCheck={str(elements)}\n",
-        "Icheck=": f"Icheck={str(elements)}\n"
-    }
-    with open(method_path, 'r', encoding='utf-8') as file:
-        lines = file.readlines()
-    with open(method_path, 'w', encoding='utf-8') as file:
-        for line in lines:
-            replaced = False
-            for key, value in replace_map.items():
-                if line.startswith(key):
-                    file.write(value)
-                    replaced = True
-                    break
-            if not replaced:
-                file.write(line)
+    # Rewrites the method file to ppm if needed and checks it before MS-FINDER is started.
+    apply_msfinder_settings(method_path, config['formula_prediction']['msfinder'])
