@@ -3,6 +3,7 @@ from rdkit import Chem
 from rdkit.Chem import inchi
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
+from msemblator.chemistry.msfinder_method import apply_msfinder_settings
 
 # Function to read MSP file
 def read_msp_file(file_path):
@@ -70,33 +71,12 @@ def safe_log2(x):
 def modify_msfinder_config_in_place(method_path, librarypath, config, section="structure_prediction"):
     # section: which yaml block supplies the tolerances (the formula pre-step of the
     # structure workflow keeps using formula_prediction).
-    msfinder_config = config[section]['msfinder']
-    ms1_ppm = msfinder_config['MS1_ppm']
-    ms2_ppm = msfinder_config['MS2_ppm']
-    elements = msfinder_config['halogen']
-    replace_map = {
-        # Tolerances in the yaml are in ppm; MS-FINDER reads them in the unit given here.
-        "MassToleranceType=": "MassToleranceType=ppm\n",
-        "Ms1Tolerance=": f"Ms1Tolerance={ms1_ppm}\n",
-        "Ms2Tolerance=": f"Ms2Tolerance={ms2_ppm}\n",
-        "Fcheck=": f"Fcheck={str(elements)}\n",
-        "ClCheck=": f"ClCheck={str(elements)}\n",
-        "BrCheck=": f"BrCheck={str(elements)}\n",
-        "Icheck=": f"Icheck={str(elements)}\n",
-        "UserDefinedDbFilePath=": f"UserDefinedDbFilePath={librarypath}\n"
-    }
-    with open(method_path, 'r', encoding='utf-8') as file:
-        lines = file.readlines()
-    with open(method_path, 'w', encoding='utf-8') as file:
-        for line in lines:
-            replaced = False
-            for key, value in replace_map.items():
-                if line.startswith(key):
-                    file.write(value)
-                    replaced = True
-                    break
-            if not replaced:
-                file.write(line)
+    # Rewrites the method file to ppm if needed and checks it before MS-FINDER is started.
+    apply_msfinder_settings(
+        method_path,
+        config[section]['msfinder'],
+        extra_settings={"UserDefinedDbFilePath": librarypath},
+    )
 
 
 def convert_to_canonical_smiles(df, column_name, new_column_name="Canonical_SMILES"):
