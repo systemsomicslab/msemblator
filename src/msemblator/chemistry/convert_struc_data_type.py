@@ -55,14 +55,28 @@ def smiles_to_inchikeys(smiles_series, msfinder_library):
     # Return as DataFrame with both keys
     return pd.DataFrame({'shortInChiKey': short_inchikey_series, 'InChIKey': full_inchikey_series})
 
+def drop_duplicate_short_inchikey(df, group_col="filename", inchikey_col="InChIKey"):
+    """
+    Keep only the first (best-ranked) candidate for each short InChIKey (first 14 characters)
+    within each group, preserving the original row order. Rows without an InChIKey are kept.
+    """
+    short_key = df[inchikey_col].fillna("").astype(str).str.strip().str[:14]
+    duplicated = df.assign(_short_key=short_key).duplicated(subset=[group_col, "_short_key"], keep="first")
+    return df[~(duplicated & (short_key != ""))].reset_index(drop=True)
+
 def safe_log2(x):
     return np.log2(x + 1e-6)
 
-def modify_msfinder_config_in_place(method_path, librarypath, config):
-    ms1_ppm = config['formula_prediction']['msfinder']['MS1_ppm']
-    ms2_ppm = config['formula_prediction']['msfinder']['MS2_ppm']
-    elements = config['formula_prediction']['msfinder']['halogen']
+def modify_msfinder_config_in_place(method_path, librarypath, config, section="structure_prediction"):
+    # section: which yaml block supplies the tolerances (the formula pre-step of the
+    # structure workflow keeps using formula_prediction).
+    msfinder_config = config[section]['msfinder']
+    ms1_ppm = msfinder_config['MS1_ppm']
+    ms2_ppm = msfinder_config['MS2_ppm']
+    elements = msfinder_config['halogen']
     replace_map = {
+        # Tolerances in the yaml are in ppm; MS-FINDER reads them in the unit given here.
+        "MassToleranceType=": "MassToleranceType=ppm\n",
         "Ms1Tolerance=": f"Ms1Tolerance={ms1_ppm}\n",
         "Ms2Tolerance=": f"Ms2Tolerance={ms2_ppm}\n",
         "Fcheck=": f"Fcheck={str(elements)}\n",

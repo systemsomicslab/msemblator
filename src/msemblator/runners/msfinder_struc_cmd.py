@@ -6,10 +6,11 @@ from msemblator.chemistry.convert_struc_data_type import modify_msfinder_config_
 from pathlib import Path
 import re
 
-def run_msfinder(msfinder_directory, input_path, output_path, method_path, library_path, config):
+def run_msfinder(msfinder_directory, input_path, output_path, method_path, library_path, config,
+                 section="structure_prediction"):
 
     # Modify config before running
-    modify_msfinder_config_in_place(method_path, library_path, config)
+    modify_msfinder_config_in_place(method_path, library_path, config, section)
 
     # Full path to MSFinder executable
     msfinder_exe = os.path.join(msfinder_directory, "MsfinderConsoleApp.exe")
@@ -30,7 +31,7 @@ def run_msfinder(msfinder_directory, input_path, output_path, method_path, libra
     # judged by the result files it writes, not by the exit code.
     results_before = set(glob.glob(os.path.join(output_path, "*result*.txt")))
     try:
-        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as proc:
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace", bufsize=1) as proc:
             for line in proc.stdout:
                 print(line, end="")
             return_code = proc.wait()

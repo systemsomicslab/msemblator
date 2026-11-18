@@ -4,6 +4,7 @@ import glob
 import pandas as pd
 import joblib
 from msemblator.chemistry.convert_struc_data_type import normalize_rank_score as normalize_rank_n
+from msemblator.chemistry.convert_struc_data_type import drop_duplicate_short_inchikey
 from msemblator.scoring.struc_score_normalization import ClippingTransformer
 
 def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df, 
@@ -37,7 +38,11 @@ def process_msfinder_output(msfinder_folder, machine_dir, name_adduct_df,
 
     # Extract filename without extension
     msfinder_output_combined["filename"] = msfinder_output_combined["File name"].astype(str).apply(lambda x: x.split('.')[0])
-    
+
+    # MS-FINDER can report the same structure several times (one row per DB search path);
+    # keep only the best-ranked row for each short InChIKey before ranking.
+    msfinder_output_combined = drop_duplicate_short_inchikey(msfinder_output_combined)
+
     # Assign rank based on filename groups
     msfinder_output_combined["rank"] = (msfinder_output_combined.groupby("filename").cumcount() + 1).astype(int)
 

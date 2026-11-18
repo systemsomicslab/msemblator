@@ -58,7 +58,7 @@ UserDefinedDbFilePath=
 
 #Spectral database search
 IsRunSpectralDbSearch=False
-IsRunInSilicoFragmenterSearch=True
+IsRunInSilicoFragmenterSearch=False
 IsPrecursorOrientedSearch=True
 IsUseInternalExperimentalSpectralDb=False
 IsUseInSilicoSpectralDbForLipids=False
