@@ -1,0 +1,19 @@
+{
+  "description": "Reference FIDDLE output on tests/fixtures/sirius_free_demo.msp, created on Windows 11 / Python 3.11.18 / msfiddle 2.3.0 / torch 2.15.0+cpu (CPU). The 16 demo spectra with candidates were also checked against the official 'msfiddle predict --demo' CSV: identical formulas, order and Rescore values.",
+  "input_sha256": "fc058ffb030fe76428c44cc4872ac74096947587485d27a81b3d47029dec0c94",
+  "status_counts": {
+    "ok": 20,
+    "no_candidate": 3,
+    "unsupported_adduct": 4,
+    "missing_collision_energy": 1,
+    "rejected_by_tool": 2,
+    "unknown_instrument": 1
+  },
+  "checkpoints_sha256": {
+    "fiddle_tcn_orbitrap.pt": "f418c45f38e7c40e7de1bbd7b77fbb3ecb7c2b3a42b287f2d53afdf645ca994e",
+    "fiddle_rescore_orbitrap.pt": "bed7f52b56146d06f63d1a8dea1c144fc0ee1b51e63327901b35d2854e031bb7",
+    "fiddle_tcn_qtof.pt": "9c75b47c68145f11a317f275ca4218ae6a46051554af8408e706569904f1c771",
+    "fiddle_rescore_qtof.pt": "3b12a01a3f405695754aab6fb97fd03454bd590681fd6a7e9fcb62cfcbe67872"
+  },
+  "score_tolerance": 1e-5
+}

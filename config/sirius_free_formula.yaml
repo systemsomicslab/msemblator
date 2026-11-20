@@ -1,0 +1,39 @@
+# Settings for the SIRIUS-free formula model (MSBuddy + FIDDLE + MS-FINDER).
+# This file is independent of msemblator_parameter_file.yaml and of models/formula.
+# Use single quotes for Windows paths.
+
+annotation:
+  # Tools to run; remove one to skip it.
+  tools: [msbuddy, msfinder, fiddle]
+
+  msbuddy:            # same settings as formula_prediction.msbuddy of the default workflow
+    MS1_ppm: 10
+    MS2_ppm: 20
+    halogen: true
+    timeout_secs: 600
+    batch_size: 1000
+    top_n: 100
+
+  msfinder:           # same settings as formula_prediction.msfinder of the default workflow
+    MS1_ppm: 10
+    MS2_ppm: 20
+    halogen: true
+    top_n: 100
+    msfinder_dir: null      # null: external/msfinder/MSFINDER*
+    param_template: null    # null: config/msfinder/MsfinderConsoleApp_Param_formula.txt
+
+  fiddle:
+    # Python of the FIDDLE environment (envs/fiddle). Used when the current
+    # interpreter does not have msfiddle installed.
+    #   conda: the environment name is enough.
+    conda_env: msemblator-fiddle
+    python: null            # or an explicit path, e.g. 'C:\Users\me\.conda\envs\msemblator-fiddle\python.exe'
+    device: cpu
+    batch_size: 32
+    chunk_size: 512
+    top_k: 100
+    # Spectra without COLLISION_ENERGY are not sent to FIDDLE (status
+    # missing_collision_energy); no default energy is substituted.
+    # Spectra whose instrument is not recognised are skipped unless this is set
+    # to qtof, orbitrap or timstof.
+    default_instrument: qtof
