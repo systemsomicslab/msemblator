@@ -22,3 +22,8 @@ def safe_log2(x):
 
 def safe_sqrt(x):
     return np.sqrt(np.clip(x, a_min=0, a_max=None))
+
+def safe_logit(x, eps=1e-6):
+    """log(p / (1 - p)) for probability-like scores (e.g. FIDDLE rescore), kept finite at 0 and 1."""
+    p = np.clip(x, eps, 1 - eps)
+    return np.log(p / (1 - p))

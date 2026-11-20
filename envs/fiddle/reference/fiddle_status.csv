@@ -1,0 +1,32 @@
+query_id,tool,status,n_candidates,message
+1,fiddle,ok,1,
+2,fiddle,ok,1,
+3,fiddle,ok,2,
+4,fiddle,no_candidate,0,
+5,fiddle,unsupported_adduct,0,[2M-H]-
+6,fiddle,ok,4,
+7,fiddle,ok,3,
+8,fiddle,ok,1,
+9,fiddle,unsupported_adduct,0,[2M-H]-
+10,fiddle,ok,2,
+11,fiddle,ok,1,
+12,fiddle,ok,1,
+13,fiddle,ok,5,
+14,fiddle,ok,2,
+15,fiddle,no_candidate,0,
+16,fiddle,ok,6,
+17,fiddle,no_candidate,0,
+18,fiddle,ok,2,
+19,fiddle,ok,3,
+20,fiddle,ok,1,
+21,fiddle,ok,5,
+22,fiddle,missing_collision_energy,0,
+23,fiddle,unsupported_adduct,0,[M+Cl]-
+24,fiddle,ok,3,
+25,fiddle,ok,5,
+26,fiddle,ok,4,
+27,fiddle,ok,3,
+28,fiddle,rejected_by_tool,0,Spectrum must contain at least 5 peaks
+29,fiddle,rejected_by_tool,0,"Stepped collision energy '20,40' is not supported: this model was trained on single-energy spectra (the timsTOF config sets encoding.stepped_collision_energy to 'mean')"
+30,fiddle,unsupported_adduct,0,[M+K]+
+31,fiddle,unknown_instrument,0,
