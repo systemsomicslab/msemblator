@@ -4,11 +4,11 @@ import os
 import joblib
 from msemblator.chemistry.converting_data_type import normalize_rank, ClippingTransformer, read_msp_file, extract_compound_and_ionization
 from msemblator.summaries.msfinder_summary import process_msfinder_summary
-from msemblator.summaries.sirius_summary import process_sirius_summary
 from msemblator.summaries.msbuddy_summary import process_buddy_summary
+from msemblator.summaries.fiddle_summary import process_fiddle_summary
 from msemblator.scoring.calculating_score import predict_and_append, aggregate_probability_with_rank, formula_machine_input
 
-def creating_output_summary(input_msp, sirius_folder, msfinder_file_path, buddy_folder, machine_dir, top_n, summary_n):
+def creating_output_summary(input_msp, msfinder_file_path, buddy_folder, fiddle_folder, machine_dir, top_n, summary_n):
     msp_data = read_msp_file(input_msp)
     compound_ionization_data = extract_compound_and_ionization(msp_data)
     summary_df = pd.DataFrame(columns=['filename', 'adduct'])
@@ -24,16 +24,15 @@ def creating_output_summary(input_msp, sirius_folder, msfinder_file_path, buddy_
     # MS-FINDER summary
     msfinder_formula_df, score_df = process_msfinder_summary(msfinder_file_path, machine_dir, name_adduct_df, summary_df, score_df, top_n)
 
-    # sirius summary
-    sirius_formula_df, score_df = process_sirius_summary(sirius_folder, machine_dir, name_adduct_df, summary_df, score_df, top_n)
-
-
     # msbuddy summuary
     buddy_formula_df, score_df = process_buddy_summary(buddy_folder, machine_dir, name_adduct_df, summary_df, score_df, top_n)
 
+    # FIDDLE summary
+    fiddle_formula_df, score_df = process_fiddle_summary(fiddle_folder, machine_dir, name_adduct_df, summary_df, score_df, top_n)
+
     # A tool without output contributes no rows; its ranking features are filled with 0.
     if score_df.empty:
-        raise RuntimeError("No formula candidates from any tool (SIRIUS, MS-FINDER, msbuddy).")
+        raise RuntimeError("No formula candidates from any tool (MS-FINDER, msbuddy, FIDDLE).")
     wide_df = formula_machine_input(score_df)
     calc_score_df = predict_and_append(wide_df, machine_dir)
     # Fix rank_score data type
@@ -59,8 +58,8 @@ def creating_output_summary(input_msp, sirius_folder, msfinder_file_path, buddy_
     summary_score_df = summary_score_df.sort_values(score_sort_cols, ascending=[True] * len(score_sort_cols))
 
     summary_score_top_df = summary_score_df[summary_score_df["rank"]==1].copy()
-    summary_output = pd.merge(msfinder_formula_df, sirius_formula_df, on=['filename', 'adduct'], how='inner')
-    summary_output = pd.merge(summary_output, buddy_formula_df, on=['filename', 'adduct'], how='inner')
+    summary_output = pd.merge(msfinder_formula_df, buddy_formula_df, on=['filename', 'adduct'], how='inner')
+    summary_output = pd.merge(summary_output, fiddle_formula_df, on=['filename', 'adduct'], how='inner')
     summary_output = pd.merge(summary_output, summary_score_top_df, on=['filename', 'adduct'], how='inner')
     
     return summary_score_df, summary_output

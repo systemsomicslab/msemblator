@@ -5,21 +5,51 @@ import pandas as pd
 from msemblator.paths import find_ranker_model
 from msemblator.scoring.struc_score_normalization import ClippingTransformer
 
+FORMULA_TOOLS = ("msbuddy", "msfinder", "fiddle")
+ADDUCT_FEATURES = [
+    "adduct_MplusHplus", "adduct_MplusNaplus", "adduct_MplusNH4plus",
+    "adduct_MminusHminus", "adduct_MplusClminus", "adduct_MplusFAminusHminus"
+]
+# Used when the model does not record its feature names.
+FORMULA_FEATURES = (
+    [f"normalization_score_{t}" for t in FORMULA_TOOLS]
+    + [f"normalization_score_diff_{t}" for t in FORMULA_TOOLS]
+    + [f"normalization_rank_{t}" for t in FORMULA_TOOLS]
+    + ADDUCT_FEATURES
+)
+
+
+def model_feature_names(model, default):
+    """Feature names stored in the model (XGBoost, LightGBM or CatBoost), else default."""
+    for attr in ("feature_names_in_", "feature_names_", "feature_name_"):
+        names = getattr(model, attr, None)
+        if names is not None and len(names):
+            return [str(n) for n in names]
+    get_booster = getattr(model, "get_booster", None)
+    if get_booster is not None:
+        names = get_booster().feature_names
+        if names:
+            return list(names)
+    return list(default)
+
+
+def check_model_features(feature_columns, model_path, produced_features):
+    """Warn when the model expects features this workflow does not produce (e.g. SIRIUS)."""
+    missing = [c for c in feature_columns if c not in produced_features]
+    if missing:
+        print(f"Warning: {model_path.name} expects features that are not produced "
+              f"({', '.join(missing)}); they are set to 0.")
+
+
 def predict_and_append(df, machine_dir):
-    feature_columns = [
-        "normalization_score_msbuddy","normalization_score_msfinder","normalization_score_sirius",
-        "normalization_score_diff_msbuddy","normalization_score_diff_msfinder","normalization_score_diff_sirius",
-        "normalization_rank_msbuddy","normalization_rank_msfinder","normalization_rank_sirius",
-        "adduct_MplusHplus", "adduct_MplusNaplus", "adduct_MplusNH4plus",
-        "adduct_MminusHminus", "adduct_MplusClminus", "adduct_MplusFAminusHminus"
-    ]
-
-    df_original = df.copy()
-    X = df.reindex(columns=feature_columns, fill_value=0).fillna(0)
-
     model_path = find_ranker_model(machine_dir)
     print(f"Formula ranking model: {model_path.name}")
     model = joblib.load(model_path)
+    feature_columns = model_feature_names(model, FORMULA_FEATURES)
+    check_model_features(feature_columns, model_path, FORMULA_FEATURES)
+
+    df_original = df.copy()
+    X = df.reindex(columns=feature_columns, fill_value=0).fillna(0)
 
     df_original["rank_score"] = model.predict(X)
     return df_original

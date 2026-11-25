@@ -4,16 +4,22 @@ formula_prediction:
     MS2_ppm: 20
     halogen: True #True or False
 
-  sirius:
-  #  possible options: orbitrap, qtof
-    MS1: qtof
-    MS2_ppm: 20
-    halogen: True #True or False
-
   msbuddy:
     MS1_ppm: 10
     MS2_ppm: 20
     halogen: True #True or False
+
+  fiddle:
+    # FIDDLE runs in its own environment (envs/fiddle) unless msfiddle is installed here.
+    conda_env: msemblator-fiddle
+    python: null   # or the FIDDLE environment's python.exe; use single quotes for Windows paths
+    device: cpu
+    batch_size: 32
+    chunk_size: 512
+    top_k: 100
+    # Spectra without COLLISION_ENERGY are not sent to FIDDLE. Spectra whose instrument
+    # is not recognised use this model (qtof, orbitrap or timstof); null skips them.
+    default_instrument: qtof
 
   msemblator_output_records: 100
 

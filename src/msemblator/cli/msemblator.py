@@ -5,7 +5,7 @@ import pandas as pd
 from msemblator.workflows.formula_main import formula_elucidation
 from msemblator.workflows.struc_main import structure_elucidation
 from msemblator.formats.msp_format_change import msp_formula_changer, convert_name_to_peakid, save_updated_msp, modify_msp_data_type
-from msemblator.scoring.struc_score_normalization import ClippingTransformer, safe_log2, safe_sqrt
+from msemblator.scoring.struc_score_normalization import ClippingTransformer, safe_log2, safe_logit, safe_sqrt
 from msemblator.paths import SIRIUS_DIR, WORK_DIR, ensure_runtime_directories, validate_runtime
 from msemblator.runners.sirius_cmd import sirius_login
 import sys
@@ -18,7 +18,7 @@ def _register_pickle_helpers():
     ``msemblator`` console script has its own __main__ and loading would fail.
     """
     main_module = sys.modules["__main__"]
-    for helper in (ClippingTransformer, safe_log2, safe_sqrt):
+    for helper in (ClippingTransformer, safe_log2, safe_logit, safe_sqrt):
         if not hasattr(main_module, helper.__name__):
             setattr(main_module, helper.__name__, helper)
 
@@ -32,14 +32,15 @@ def main():
             "Metabolomics annotation tool with ensemble learning.\n"
             "\n"
             "modes:\n"
-            "  1  formula elucidation               (SIRIUS, MS-FINDER, msbuddy)\n"
-            "  2  formula and structure elucidation (SIRIUS, MS-FINDER, msbuddy, MetFrag)\n"
+            "  1  formula elucidation               (MS-FINDER, msbuddy, FIDDLE)\n"
+            "  2  formula and structure elucidation (formula: MS-FINDER, msbuddy, FIDDLE;\n"
+            "                                        structure: SIRIUS, MS-FINDER, MetFrag)\n"
             "  3  structure elucidation only        (SIRIUS, MS-FINDER, MetFrag)\n"
             "     mode 3 requires molecular formulas in the input MSP records."
         ),
         epilog=(
-            "SIRIUS login:\n"
-            "  SIRIUS 6 requires a login in every mode, including formula prediction.\n"
+            "SIRIUS login (modes 2 and 3):\n"
+            "  SIRIUS is used only for structure elucidation; SIRIUS 6 requires a login.\n"
             "  Recommended: log in once with 'sirius.exe login'; that login is reused.\n"
             "  Otherwise give --sirius_user (or SIRIUS_USER). The password is read from\n"
             "  SIRIUS_PASS or asked for at the prompt; --sirius_pass also works but is\n"
@@ -83,10 +84,11 @@ def main():
     updated_data, name_df = convert_name_to_peakid(original_data)
     save_updated_msp(converted_msp_path, updated_data)
 
-    # SIRIUS 6 requires a login in every mode, so log in once before any SIRIUS
-    # step. Without a user name, the login stored by `sirius.exe login` is used.
+    # Formula elucidation does not use SIRIUS. Structure elucidation (modes 2 and 3)
+    # does, so log in once before it. Without a user name, the login stored by
+    # `sirius.exe login` is used.
     sirius_user = args.sirius_user or os.environ.get("SIRIUS_USER")
-    if sirius_user:
+    if args.mode in (2, 3) and sirius_user:
         sirius_pass = args.sirius_pass or os.environ.get("SIRIUS_PASS")
         if not sirius_pass:
             sirius_pass = getpass.getpass(f"SIRIUS password for {sirius_user}: ")
@@ -98,7 +100,7 @@ def main():
         except RuntimeError as e:
             print(f"\nError: {e}")
             return 1
-    else:
+    elif args.mode in (2, 3):
         print("\nNo SIRIUS credentials given; using the login stored by `sirius.exe login`.")
 
     formula_failed_steps = []

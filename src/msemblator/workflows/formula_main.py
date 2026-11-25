@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import shutil
 import pandas as pd
@@ -8,13 +9,27 @@ import yaml
 import logging
 from msemblator.formats.splitting_msp import read_msp
 from msemblator.formats.msp_to_mgf import convert_msp_to_mgf, split_mgf_by_adduct_in_memory
-from msemblator.formats.msp_to_ms import convert_msp_file_to_ms
 from msemblator.runners.msfinder_cmd import run_formula_msfinder
-from msemblator.runners.sirius_cmd import run_sirius
 from msemblator.runners.buddy_cmd import run_msbuddy
+from msemblator.runners.fiddle_cmd import run_fiddle
 from msemblator.summaries.creating_summary import creating_output_summary
 from msemblator.chemistry.converting_data_type import generate_unique_filename, ClippingTransformer, modify_msfinder_config_in_place
-from msemblator.paths import FORMULA_MODEL_DIR, MSFINDER_DIR, PARAMETER_FILE, SIRIUS_DIR, WORK_DIR, MSFINDER_CONFIG_DIR, ensure_runtime_directories
+from msemblator.paths import FORMULA_MODEL_DIR, MSFINDER_DIR, PARAMETER_FILE, WORK_DIR, MSFINDER_CONFIG_DIR, ensure_runtime_directories
+
+# Adduct names become MGF file names, so only bracket notation such as
+# "[M+H]+", "[M+FA-H]-" or "[M+2H]2+" is accepted (no path separators or "..").
+ADDUCT_FILENAME_PATTERN = re.compile(r"\[[A-Za-z0-9+\-]+\][0-9]*[+-]")
+
+
+def adduct_mgf_path(mgf_folder, adduct):
+    """Return the MGF path for an adduct, or None if the name is not a safe file name."""
+    if not ADDUCT_FILENAME_PATTERN.fullmatch(adduct):
+        return None
+    folder = os.path.realpath(mgf_folder)
+    path = os.path.realpath(os.path.join(folder, f"{adduct}.mgf"))
+    if os.path.dirname(path) != folder:
+        return None
+    return path
 
 def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_steps=None):
     """Run formula elucidation; names of failed tools are appended to failed_steps."""
@@ -28,17 +43,16 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_step
 
     # Define necessary directories.
     msp_folder = os.path.join(current_dir, "save_folder", "msfinder_msp")
-    ms_folder = os.path.join(current_dir, "save_folder", "sirius_ms")
     mgf_folder = os.path.join(current_dir, "save_folder", "buddy_mgf")
     msfinder_folder = os.path.join(current_dir, "msfinder_output")
     buddy_folder = os.path.join(current_dir, "buddy")
-    sirius_folder = os.path.join(current_dir, "sirius", "output")
+    fiddle_run_dir = os.path.join(current_dir, "fiddle_output")
+    fiddle_folder = os.path.join(fiddle_run_dir, "fiddle")
     msfinder_directorys = os.path.join(str(MSFINDER_DIR), "MSFINDER*")
     msfinder_dirs = glob.glob(msfinder_directorys)
     msfinder_directory = msfinder_dirs[0]
     msfinder_method_path = os.path.join(str(MSFINDER_CONFIG_DIR), "MsfinderConsoleApp_Param_formula.txt")
     model_dir = str(FORMULA_MODEL_DIR)
-    sirius_path = os.path.join(str(SIRIUS_DIR), "sirius.exe")
     msfinder_file_path = os.path.join(msfinder_folder, "Formula*.txt")
     parameter_path = str(PARAMETER_FILE)
 
@@ -56,11 +70,11 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_step
         os.makedirs(folder)
 
     # Clear contents of required folders.
-    for folder in [msp_folder, ms_folder, mgf_folder, msfinder_folder, buddy_folder, sirius_folder]:
+    for folder in [msp_folder, mgf_folder, msfinder_folder, buddy_folder, fiddle_run_dir]:
         clear_folder(folder)
 
     # Ensure necessary folders exist.
-    for folder in [msp_folder, ms_folder, mgf_folder, msfinder_folder, buddy_folder, sirius_folder]:
+    for folder in [msp_folder, mgf_folder, msfinder_folder, buddy_folder, fiddle_run_dir]:
         if not os.path.exists(folder):
             os.makedirs(folder)
 
@@ -76,37 +90,27 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_step
         save_file(msp_output, content)
     print("Saved split msp")
 
-    # 2. Convert MSP file to MS format and save it.
-    ms_data = convert_msp_file_to_ms(input_msp_path)
-    ms_output = os.path.join(ms_folder, 'converted_ms.ms')
-    save_file(ms_output, ms_data)
-    print(f"Saved MS data to {ms_output}")
-
-    # 3. Convert MSP to MGF format, split by adduct, and save each file.
+    # 2. Convert MSP to MGF format, split by adduct, and save each file.
     if not os.path.exists(mgf_folder):
         os.makedirs(mgf_folder)
     mgf_content = convert_msp_to_mgf(input_msp_path)
     adduct_data = split_mgf_by_adduct_in_memory(mgf_content)
+    saved_adducts = []
     for adduct, spectra_list in adduct_data.items():
-        output_file_path = os.path.join(mgf_folder, f'{adduct.replace("/", "_")}.mgf')
+        output_file_path = adduct_mgf_path(mgf_folder, adduct)
+        if output_file_path is None:
+            logging.warning(f"Skipped {len(spectra_list)} spectra for msbuddy: unsupported adduct name {adduct!r}")
+            continue
         content = "\n\n".join(spectra_list)
         save_file(output_file_path, content)
-    print(f"Saved MGF files for adducts: {list(adduct_data.keys())}")
+        saved_adducts.append(adduct)
+    print(f"Saved MGF files for adducts: {saved_adducts}")
 
     # A failing tool does not stop the others; its ranking features become 0.
     if failed_steps is None:
         failed_steps = []
 
-    # 4. Run SIRIUS processing.
-    print("SIRIUS processing start")
-    try:
-        run_sirius(sirius_folder, ms_output, sirius_path, config)
-    except Exception as e:
-        logging.error(f"SIRIUS processing failed: {e}")
-        failed_steps.append("SIRIUS")
-    print("SIRIUS processing complete")
-
-    # 5. Run MS-FINDER processing.
+    # 3. Run MS-FINDER processing.
     print("MS-FINDER processing start")
     try:
         modify_msfinder_config_in_place(msfinder_method_path, config)
@@ -116,7 +120,7 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_step
         failed_steps.append("MS-FINDER")
     print("MS-FINDER processing complete")
 
-    # 6. Run Msbuddy processing.
+    # 4. Run Msbuddy processing.
     print("msbuddy processing start")
     try:
         run_msbuddy(mgf_folder, buddy_folder, config)
@@ -125,9 +129,18 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_step
         failed_steps.append("msbuddy")
     print("msbuddy processing complete")
 
-    # 7. Generate summary output.
+    # 5. Run FIDDLE processing (in its own environment when msfiddle is not installed here).
+    print("FIDDLE processing start")
+    try:
+        run_fiddle(input_msp_path, fiddle_run_dir, config['formula_prediction'].get('fiddle'))
+    except Exception as e:
+        logging.error(f"FIDDLE processing failed: {e}")
+        failed_steps.append("FIDDLE")
+    print("FIDDLE processing complete")
+
+    # 6. Generate summary output.
     summary_score_df, summary_output = creating_output_summary(
-        input_msp_path, sirius_folder, msfinder_file_path, buddy_folder, model_dir, top_n = 100, summary_n=config['formula_prediction']['msemblator_output_records']
+        input_msp_path, msfinder_file_path, buddy_folder, fiddle_folder, model_dir, top_n = 100, summary_n=config['formula_prediction']['msemblator_output_records']
     )
 
     summary_score_df = pd.merge(name_df, summary_score_df, left_on = "Updated_NAME", right_on = "filename")

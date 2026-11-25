@@ -20,10 +20,10 @@ PARAMETER_FILE = CONFIG_DIR / "msemblator_parameter_file.yaml"
 FORMULA_MODEL_FILES = (
     "pipeline_msfinder_formula_score.pkl",
     "pipeline_msfinder_score_diff.pkl",
-    "pipeline_sirius_score.pkl",
-    "pipeline_sirius_score_diff.pkl",
     "pipeline_msbuddy_score.pkl",
     "pipeline_msbuddy_score_diff.pkl",
+    "pipeline_fiddle_score.pkl",
+    "pipeline_fiddle_score_diff.pkl",
 )
 STRUCTURE_MODEL_FILES = (
     "pipeline_msfinder_score_diff.pkl",
@@ -61,13 +61,15 @@ def ensure_runtime_directories():
 
 def validate_runtime(mode):
     """Raise a clear error when a required local runtime asset is missing."""
-    required = [PARAMETER_FILE, SIRIUS_DIR / "sirius.exe", MSFINDER_CONFIG_DIR / "MsfinderConsoleApp_Param_formula.txt"]
+    required = [PARAMETER_FILE, MSFINDER_CONFIG_DIR / "MsfinderConsoleApp_Param_formula.txt"]
     if not any(MSFINDER_DIR.glob("MSFINDER*/MsfinderConsoleApp.exe")):
         required.append(MSFINDER_DIR / "MSFINDER*/MsfinderConsoleApp.exe")
     if mode in (1, 2):
         required.extend(FORMULA_MODEL_DIR / name for name in FORMULA_MODEL_FILES)
     if mode in (2, 3):
         required.extend(STRUCTURE_MODEL_DIR / name for name in STRUCTURE_MODEL_FILES)
+        # SIRIUS is used only for structure elucidation.
+        required.append(SIRIUS_DIR / "sirius.exe")
         required.extend([LIBRARY_DIR / "sirius_structure_db.siriusdb", METFRAG_DIR / "MetFragCommandLine-2.5.0.jar", LIBRARY_DIR / "metfrag_StructureDB.txt", LIBRARY_DIR / "MsfinderStructureDB_all.txt"])
         required.extend([MSFINDER_CONFIG_DIR / "MsfinderConsoleApp-Param2_structure.txt", METFRAG_CONFIG_DIR / "example_paramater.txt"])
     missing = [str(path) for path in required if not path.exists()]

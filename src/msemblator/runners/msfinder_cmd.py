@@ -24,4 +24,4 @@ def run_formula_msfinder(msfinder_directory, input_path, output_path, method_pat
             proc.wait()
 
     except Exception as e:
-        print(f"An error occurred during SIRIUS execution: {e}")
+        print(f"An error occurred during MS-FINDER execution: {e}")
