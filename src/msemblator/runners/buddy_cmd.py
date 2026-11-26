@@ -60,20 +60,12 @@ def run_msbuddy(input_dir, output_dir, confing, batch_size=1000):
             # Retrieve summary results for the chunk
             summary_df = pd.DataFrame(msb_engine.get_summary())
 
-            # Identify correct m/z column
-            mz_column = next((col for col in ["m/z", "mz", "precursor_mz"] if col in summary_df.columns), None)
-            if mz_column is None:
-                raise KeyError("Could not find a valid m/z column in summary_df.")
-            if "identifier" not in summary_df.columns:
-                raise KeyError("The column 'identifier' is missing from summary_df.")
-            
-            # Create identifier mapping
-            identifier_map = dict(zip(summary_df[mz_column], summary_df["identifier"]))
-
             # Retrieve detailed candidate results
             detailed_result_list = []
             for meta_feature in chunk:
-                scan_id = identifier_map.get(meta_feature.mz, None)
+                # Each feature carries its own identifier (the MGF TITLE). Looking it
+                # up by precursor m/z would mix up spectra that share the same m/z.
+                scan_id = meta_feature.identifier
                 rt_value = getattr(meta_feature, "rt", None)
 
                 # Ensure candidate_formula_list is not None

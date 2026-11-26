@@ -34,16 +34,19 @@ def convert_msp_to_mgf(file_path, output_file_path=None):
                         spectra.append(spectrum)
                         spectrum = {}
                         is_in_peaks = False
-                elif 'NAME:' in line.upper():
+                # Match field names at the start of the line only, so a value such as
+                # "COMMENT: |ORIGNAME=compound name: X|" is not read as NAME.
+                elif line.upper().startswith('NAME:'):
                     spectrum['TITLE'] = line.split(':', 1)[1].strip()
-                elif 'PRECURSORMZ:' in line.upper():
+                elif line.upper().startswith('PRECURSORMZ:'):
                     spectrum['PEPMASS'] = line.split(':', 1)[1].strip()
-                elif 'PRECURSORTYPE:' in line.upper():
+                elif line.upper().startswith(('PRECURSORTYPE:', 'PRECURSOR_TYPE:')):
                     value = line.split(':', 1)[1].strip()
                     spectrum['ADDUCT'] = value
                     spectrum['CHARGE'] = '1' if '+' in value else '1'
-                    spectrum["IONMODE"] = "POSITIVE" if '+' in value else 'NEGATIVE'
-                elif 'NUM PEAKS:' in line.upper():
+                    # The charge sign is the last character ("[M+Cl]-" is negative).
+                    spectrum["IONMODE"] = 'NEGATIVE' if value.endswith('-') else "POSITIVE"
+                elif line.upper().startswith('NUM PEAKS:'):
                     is_in_peaks = True
                 elif is_in_peaks:
                     spectrum.setdefault('m/z', []).append(line)
