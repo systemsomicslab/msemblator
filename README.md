@@ -28,11 +28,11 @@ trained scoring models.
 
 MS-Emblator provides three analysis modes:
 
-| Mode | Analysis | Integrated tools | Formula required in input | SIRIUS account |
+| Mode | Analysis | Default tools | Formula required in input | SIRIUS account |
 | --- | --- | --- | --- | --- |
-| `1` | Formula elucidation | SIRIUS, MS-FINDER, msbuddy | No | Yes |
-| `2` | Formula and structure elucidation | SIRIUS, MS-FINDER, msbuddy, MetFrag | No | Yes |
-| `3` | Structure elucidation only | SIRIUS, MS-FINDER, MetFrag | Yes | Yes |
+| `1` | Formula elucidation | SIRIUS, MS-FINDER, msbuddy | No | Yes (with SIRIUS) |
+| `2` | Formula and structure elucidation | SIRIUS, MS-FINDER, msbuddy, MetFrag | No | Yes (with SIRIUS) |
+| `3` | Structure elucidation only | SIRIUS, MS-FINDER, MetFrag | Yes | Yes (with SIRIUS) |
 
 Mode 2 is recommended when the input MSP file does not already contain reliable
 molecular formula annotations.
@@ -52,20 +52,23 @@ The tools above are the default combination. FIDDLE (formula) and GLACIER
 
 - Windows 10 or Windows 11
 
-### Python
+### Python and conda
 
-- Python 3.10 or newer
-- Python 3.12 is recommended
+One of:
 
-Check the installed version:
+- [Miniconda](https://docs.conda.io/projects/miniconda/) or Anaconda
+  (recommended). The launchers create the `msemblator` environment with
+  Python 3.12 and Java 21.
+- [Python 3.12](https://www.python.org/downloads/) without conda (3.10 and
+  3.11 also work; 3.13 does not, because numpy 1.26 and RDKit 2023.9 have no
+  packages for it). The launchers then create a venv in `.venv`.
 
-```powershell
-python --version
-```
+See [Installation](#installation).
 
 ### Java
 
-MetFrag requires Java 21 or newer.
+MetFrag requires Java 21 or newer. The conda environment includes it; with a
+venv, install it separately (e.g. from [Adoptium](https://adoptium.net/)).
 
 ```powershell
 java --version
@@ -83,10 +86,17 @@ MS-Emblator uses the following third-party tools:
   for formula and structure prediction
 - [MetFrag command line 2.5.0](https://github.com/ipb-halle/MetFragRelaunched/releases/tag/v2.5.0)
   for structure prediction
+- [FIDDLE](https://github.com/JosieHong/FIDDLE) (msfiddle 2.3.0) for formula
+  prediction, optional; installed into the environment
+- GLACIER predicted spectral libraries for structure prediction, optional
+  (see `README_glacier.md`)
 
 The external programs, compound libraries, and trained scoring models are not
-stored in this Git repository. They are distributed separately through
-[Zenodo](https://zenodo.org/records/23721007).
+stored in this Git repository. The programs come from their own releases; the
+compound libraries and models are distributed through
+[Zenodo](https://zenodo.org/records/23721007). **Downloads** in the GUI (or
+`python -m msemblator.downloads`) installs both; see
+[Downloading the runtime assets](#downloading-the-runtime-assets).
 
 ## Installation
 
@@ -488,6 +498,13 @@ Structure elucidation produces:
 | --- | --- |
 | `structure_summary.csv` | Structure candidates reported by the tools together with the top ensemble result |
 | `structure_score.csv` | Structure candidates ranked by the ensemble scoring model |
+| `glacier_spectra.csv.gz` | Only when GLACIER is selected: GLACIER predicted spectra of the top 100 GLACIER candidates per spectrum, with their similarities (used for the mirror plots in the GUI) |
+
+The per-tool columns of the summaries follow the selected tools:
+`msfinder_formula_*`, `sirius_formula_*`, `buddy_formula_*`, `fiddle_formula_*`
+and `msfinder_structure_*`, `sirius_structure_*`, `metfrag_structure_*`,
+`glacier_structure_*` (top 5 of each tool). `Used_Tool` lists which tools
+proposed a candidate and at which rank, e.g. `MS-FINDER_Rank:1,FIDDLE_Rank:2`.
 
 Mode 2 produces both formula and structure output files. Intermediate converted
 spectra and tool-specific results are stored under `work/`; they are intended
@@ -524,6 +541,17 @@ formula_prediction:
     MS2_ppm: 20
     halogen: true
 
+  fiddle:                          # used only when FIDDLE is selected
+    conda_env: null                # null: FIDDLE runs in the MS-Emblator environment
+    python: null
+    device: cpu
+    batch_size: 32
+    chunk_size: 512
+    top_k: 100
+    default_collision_energy: 30   # eV, for spectra without one in the MSP
+    override_collision_energy: false
+    default_instrument: qtof
+
   msemblator_output_records: 100
 
 structure_prediction:
@@ -549,6 +577,14 @@ structure_prediction:
 - `MS2_ppm`: fragment mass tolerance in ppm.
 - `halogen`: whether halogen-containing molecular formulas are considered.
 - `sirius.MS1`: SIRIUS instrument profile (`qtof` or `orbitrap`).
+- `fiddle.default_collision_energy`: collision energy (eV) given to FIDDLE for
+  spectra whose MSP record has none (`null`: those spectra are skipped by
+  FIDDLE). With `fiddle.override_collision_energy: true` it is used for every
+  spectrum. `--fiddle_ce` on the command line takes priority over both.
+- `fiddle.default_instrument`: FIDDLE model (`qtof`, `orbitrap`, `timstof`) for
+  spectra whose instrument is not recognised (`null`: skipped).
+- `fiddle.top_k`: FIDDLE candidates per spectrum; `device`, `batch_size` and
+  `chunk_size` control the inference.
 - `msemblator_output_records`: maximum number of ensemble-ranked candidates
   retained per feature.
 
@@ -560,24 +596,41 @@ structure_prediction:
 - `metfrag.MS2_ppm`: MetFrag relative fragment tolerance in ppm.
 
 Additional tool-specific templates are located under `config/metfrag/` and
-`config/msfinder/`. Back up a template before making advanced changes.
+`config/msfinder/`. Back up a template before making advanced changes. The
+GLACIER settings are in `config/glacier.yaml` (see `README_glacier.md`), the
+tool combinations in `config/toolsets.yaml` and the download addresses in
+`config/downloads.yaml`. The GUI edits this file under **Settings > Analysis
+parameters**.
 
 ## Troubleshooting
 
 ### `msemblator` is not recognized
 
-Activate the virtual environment and reinstall the package:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-pip install -e .
-```
-
-Alternatively, run the bundled launcher:
+Use the launchers, which run MS-Emblator inside its environment:
 
 ```powershell
 .\msemblator.cmd --help
 ```
+
+Or activate the environment first (`conda activate msemblator`, or
+`.\.venv\Scripts\Activate.ps1` for the venv).
+
+### The launcher stops while creating or updating the environment
+
+- Close every MS-Emblator window and start again; the next start continues.
+- `Neither conda nor Python 3.12 was found`: install Miniconda or Python 3.12
+  (see [Requirements](#requirements)).
+- With a venv, `WinError 206` (file name too long) means PyTorch's folders do
+  not fit under the repository path: set `MSEMBLATOR_VENV_DIR` to a short
+  folder such as `C:\msemblator-venv`, or enable long paths in Windows.
+
+### A tool combination is *Not ready*
+
+Open **Settings > Tool setup** in the GUI, or run `msemblator --list_tools`, to
+see the missing files. Programs, models and libraries can be installed with
+**Downloads**; FIDDLE packages and weights with **Set up FIDDLE**
+(`python -m msemblator.fiddle_setup --run`). The FIDDLE and GLACIER
+combinations also need their own trained ranking models.
 
 ### Missing runtime assets
 
@@ -608,7 +661,8 @@ Confirm that:
 - you are logged in to SIRIUS (see [SIRIUS login](#sirius-login));
 - the SIRIUS username and password are correct;
 - the machine can reach the SIRIUS web service;
-- `sirius.exe` and `sirius_structure_db.siriusdb` are in `external/sirius/`.
+- `sirius.exe` is in `external/sirius/` and `sirius_structure_db.siriusdb` in
+  `library/`.
 
 ### Structure prediction is skipped or incomplete
 
