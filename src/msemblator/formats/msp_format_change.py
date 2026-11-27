@@ -119,9 +119,32 @@ def save_updated_msp(file_path, data):
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(data)
 
+# Fields FIDDLE needs (collision energy, instrument). They are written only when
+# the input has them, under the MS-DIAL key names that msp_io also reads.
+OPTIONAL_MSP_FIELDS = (
+    ("collisionenergy", "COLLISIONENERGY", ("collisionenergy:", "collision_energy:")),
+    ("instrumenttype", "INSTRUMENTTYPE", ("instrumenttype:", "instrument_type:")),
+    ("instrument", "INSTRUMENT", ("instrument:",)),
+)
+
+
+def _optional_field(line):
+    """Return the OPTIONAL_MSP_FIELDS field a line holds, or None."""
+    lowered = line.casefold()
+    for field, _, prefixes in OPTIONAL_MSP_FIELDS:
+        if lowered.startswith(prefixes):
+            return field
+    return None
+
+
 def format_msp(spectrum):
     try:
         ms2_data = "\n".join(spectrum["ms2"])
+        optional = "".join(
+            f"{key}: {spectrum[field]}\n"
+            for field, key, _ in OPTIONAL_MSP_FIELDS
+            if spectrum.get(field)
+        )
         format = (
             f"NAME: {spectrum['name']}\n"
             f"PRECURSORMZ: {spectrum['precursormz']}\n"
@@ -131,8 +154,9 @@ def format_msp(spectrum):
             f"ONTOLOGY: {spectrum['ontology']}\n"
             f"INCHIKEY: {spectrum['inchikey']}\n"
             f"SMILES: {spectrum['smiles']}\n"
+            f"{optional}"
             f"COMMENT: {spectrum['comment']}\n"
-            f"Num Peaks: {spectrum['numpeaks']}\n{ms2_data}"            
+            f"Num Peaks: {spectrum['numpeaks']}\n{ms2_data}"
         )
         return format
     except KeyError as e:
@@ -195,6 +219,8 @@ def modify_msp_type(msp_data):
                     spectrum["smiles"] = line.split(':', 1)[1].strip()
                 elif line.casefold().startswith("comment:"):
                     spectrum["comment"] = line.split(':', 1)[1].strip()
+                elif _optional_field(line):
+                    spectrum.setdefault(_optional_field(line), line.split(':', 1)[1].strip())
                 elif line.casefold().startswith("num peaks:"):
                     spectrum["numpeaks"] = line.split(':', 1)[1].strip()
                     is_in_peaks = True

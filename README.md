@@ -37,10 +37,14 @@ MS-Emblator provides three analysis modes:
 Mode 2 is recommended when the input MSP file does not already contain reliable
 molecular formula annotations.
 
+The tools above are the default combination. FIDDLE (formula) and GLACIER
+(structure) can be selected instead of, or in addition to, SIRIUS; see
+[Selecting annotation tools](#selecting-annotation-tools).
+
 > [!IMPORTANT]
 > SIRIUS 6 requires a login for every command-line run, including formula
-> prediction. A SIRIUS account is therefore needed in all modes. See
-> [SIRIUS login](#sirius-login).
+> prediction. A SIRIUS account is therefore needed whenever SIRIUS is among
+> the selected tools (the default). See [SIRIUS login](#sirius-login).
 
 ## Requirements
 
@@ -144,6 +148,8 @@ repository as shown below. Keep the directory and file names unchanged.
 msemblator/
 ├─ config/
 │  ├─ msemblator_parameter_file.yaml
+│  ├─ toolsets.yaml          (tool combinations; in Git)
+│  ├─ glacier.yaml           (GLACIER settings; in Git)
 │  ├─ metfrag/
 │  │  └─ example_paramater.txt
 │  └─ msfinder/
@@ -158,13 +164,17 @@ msemblator/
 │  │  │  └─ MsfinderConsoleApp.exe
 │  │  ├─ MsfinderConsoleApp_Param_formula.txt
 │  │  └─ MsfinderConsoleApp-Param2_structure.txt
-│  └─ sirius/
-│     └─ sirius.exe
+│  ├─ sirius/
+│  │  └─ sirius.exe
+│  └─ glacier/               (only for GLACIER)
+│     └─ *_predictions.msds
 ├─ models/
 │  ├─ formula/
-│  │  └─ *.pkl
+│  │  ├─ *.pkl
+│  │  └─ msfinder_msbuddy_fiddle/       (only for --formula_tools fiddle)
 │  └─ structure/
-│     └─ *.pkl
+│     ├─ *.pkl
+│     └─ msfinder_glacier_metfrag/      (only for --structure_tools glacier)
 ├─ src/
 ├─library/
 │  ├─sirius_structure_db.siriusdb
@@ -177,7 +187,8 @@ msemblator/
 The `external/`, `models/`, and generated `work/` directories are intentionally
 excluded from Git because they contain large or machine-local files.
 
-At startup, MS-Emblator checks for the assets required by the selected mode. A
+At startup, MS-Emblator checks for the assets required by the selected mode and
+tools (`--list_tools` shows them for every tool combination). A
 `FileNotFoundError` listing one or more paths means that the Zenodo archive was
 not extracted into the expected location.
 
@@ -289,6 +300,60 @@ The same arguments can be passed to the bundled launcher:
 .\msemblator.cmd --input .\data\example.msp --output .\results --mode 1
 ```
 
+### Selecting annotation tools
+
+`--formula_tools` and `--structure_tools` choose the tools. Give a combination
+name or a list of tools (comma separated, any order, case ignored):
+
+| Step | Name | Tools | Ranking model folder |
+| --- | --- | --- | --- |
+| formula | `sirius` (default) | SIRIUS, MS-FINDER, msbuddy | `models/formula/` |
+| formula | `fiddle` | MS-FINDER, msbuddy, FIDDLE | `models/formula/msfinder_msbuddy_fiddle/` |
+| formula | `all` | SIRIUS, MS-FINDER, msbuddy, FIDDLE | `models/formula/sirius_msfinder_msbuddy_fiddle/` |
+| structure | `sirius` (default) | MS-FINDER, SIRIUS, MetFrag | `models/structure/` |
+| structure | `glacier` | MS-FINDER, GLACIER, MetFrag | `models/structure/msfinder_glacier_metfrag/` |
+| structure | `all` | MS-FINDER, SIRIUS, MetFrag, GLACIER | `models/structure/msfinder_sirius_metfrag_glacier/` |
+
+```powershell
+# SIRIUS-free formula and structure elucidation
+.\msemblator.cmd --input .\data\example.msp --output .\results --mode 2 `
+  --formula_tools fiddle --structure_tools glacier
+
+# The same formula tools, written as a list
+.\msemblator.cmd --input .\data\example.msp --output .\results --mode 1 `
+  --formula_tools msfinder,msbuddy,fiddle
+
+# Which combinations can run on this computer, and what each one still needs
+.\msemblator.cmd --list_tools
+```
+
+How it works:
+
+- Each combination is ranked by its own trained model, so only the
+  combinations in `config/toolsets.yaml` can be selected. A combination
+  without its ranking model stops at startup with the missing path. The
+  models for FIDDLE and GLACIER combinations still have to be trained.
+- Only the selected tools run. SIRIUS, its login and `sirius.exe` are needed
+  only when SIRIUS is selected.
+- The model folder holds the ranking model (`xgbranker_final_all.pkl`, or the
+  CatBoost / LightGBM file). Each tool's normalization pipelines
+  (`pipeline_<tool>_*.pkl`) are read from that folder if present, otherwise
+  from `models/formula/` or `models/structure/`.
+- The ranking model's own feature list is used. A model that needs features of
+  a tool that is not selected is refused.
+- FIDDLE runs in its own conda environment (`envs/fiddle`, see
+  `README_sirius_free.md`), set under `formula_prediction.fiddle` in
+  `config/msemblator_parameter_file.yaml`. It needs
+  `pipeline_fiddle_score.pkl` and `pipeline_fiddle_score_diff.pkl`.
+- GLACIER needs the packages in `envs/glacier/requirements-glacier.txt` and the
+  predicted spectral libraries in `external/glacier/` (see `README_glacier.md`).
+  Its features are given to the ranking model as raw values. Spectra whose
+  adduct has no GLACIER library are ranked from the other tools.
+
+To add a combination, train a ranking model for it, put the model folder in
+place and add an entry to `config/toolsets.yaml`. `--toolsets` reads another
+file in the same format.
+
 ### Command-line arguments
 
 | Argument | Required | Description |
@@ -296,6 +361,10 @@ The same arguments can be passed to the bundled launcher:
 | `--input` | Yes | Path to the input MSP file |
 | `--output` | Yes | Directory in which summary CSV files are saved |
 | `--mode` | Yes | `1`: formula, `2`: formula and structure, `3`: structure |
+| `--formula_tools` | No | Formula tools: `sirius` (default), `fiddle`, `all`, or a list such as `msfinder,msbuddy,fiddle` |
+| `--structure_tools` | No | Structure tools: `sirius` (default), `glacier`, `all`, or a list such as `msfinder,glacier,metfrag` |
+| `--toolsets` | No | Tool combination file (default `config/toolsets.yaml`) |
+| `--list_tools` | No | Show the tool combinations and the files each one still needs, then exit |
 | `--sirius_user` | No | SIRIUS account email or username. Defaults to `SIRIUS_USER`; without either, the login stored by `sirius.exe login` is used |
 | `--sirius_pass` | No | SIRIUS account password. Defaults to `SIRIUS_PASS`; without either, you are asked for it |
 | `-h`, `--help` | No | Show the help message and exit |

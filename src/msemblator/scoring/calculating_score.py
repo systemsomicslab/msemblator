@@ -4,25 +4,50 @@ import joblib
 import pandas as pd
 from msemblator.paths import find_ranker_model
 from msemblator.scoring.struc_score_normalization import ClippingTransformer
+from msemblator import toolsets
 
-def predict_and_append(df, machine_dir):
-    feature_columns = [
-        "normalization_score_msbuddy","normalization_score_msfinder","normalization_score_sirius",
-        "normalization_score_diff_msbuddy","normalization_score_diff_msfinder","normalization_score_diff_sirius",
-        "normalization_rank_msbuddy","normalization_rank_msfinder","normalization_rank_sirius",
-        "adduct_MplusHplus", "adduct_MplusNaplus", "adduct_MplusNH4plus",
-        "adduct_MminusHminus", "adduct_MplusClminus", "adduct_MplusFAminusHminus"
-    ]
+
+def model_feature_names(model, default):
+    """Feature names stored in the model (XGBoost, LightGBM or CatBoost), else default."""
+    for attr in ("feature_names_in_", "feature_names_", "feature_name_"):
+        names = getattr(model, attr, None)
+        if isinstance(names, (list, tuple, np.ndarray)) and len(names):
+            return [str(n) for n in names]
+    get_booster = getattr(model, "get_booster", None)
+    if callable(get_booster):
+        try:
+            names = get_booster().feature_names
+        except Exception:
+            names = None
+        if isinstance(names, (list, tuple)) and names:
+            return [str(n) for n in names]
+    return list(default)
+
+
+def predict_with_ranker(df, machine_dir, selection, label):
+    """Add rank_score from the ranking model in machine_dir.
+
+    The feature list comes from the model itself, so a model trained for another
+    tool combination is refused instead of being given zero-filled columns.
+    Features of a tool without output are 0, as before.
+    """
+    model_path = find_ranker_model(machine_dir)
+    print(f"{label} ranking model: {model_path}")
+    # The models are local files installed with MS-Emblator (models/, see
+    # config/toolsets.yaml); pickles from other sources must not be put there.
+    model = joblib.load(model_path)
+    feature_columns = model_feature_names(model, toolsets.ranking_features(selection))
+    toolsets.check_model_features(feature_columns, selection, model_path.name)
 
     df_original = df.copy()
     X = df.reindex(columns=feature_columns, fill_value=0).fillna(0)
-
-    model_path = find_ranker_model(machine_dir)
-    print(f"Formula ranking model: {model_path.name}")
-    model = joblib.load(model_path)
-
     df_original["rank_score"] = model.predict(X)
     return df_original
+
+
+def predict_and_append(df, machine_dir, selection=None):
+    selection = selection or toolsets.resolve_selection(toolsets.FORMULA)
+    return predict_with_ranker(df, machine_dir, selection, "Formula")
 
 def _tool_support(used_tool, preferred_tool=None):
     """Return (number of tools, best tool rank, preferred tool rank) from a "TOOL_Rank:n,..." string."""

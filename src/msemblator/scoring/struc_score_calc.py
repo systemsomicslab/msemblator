@@ -3,38 +3,44 @@ import os
 import joblib
 import pandas as pd
 from msemblator.chemistry.convert_struc_data_type import convert_to_shortinchikey
-from msemblator.paths import find_ranker_model
+from msemblator.paths import find_ranker_model  # noqa: F401  (patched by tests)
+from msemblator.scoring import calculating_score
 from msemblator.scoring.calculating_score import sort_by_score_and_tool_support
+from msemblator import toolsets
 from rdkit import Chem
 from rdkit.Chem import inchi
 
 
-def predict_and_append_rank(df, machine_dir):
-    feature_columns = [
-        "normalization_score_metfrag",
-        "normalization_score_msfinder",
-        "normalization_score_sirius",
-        "normalization_score_diff_metfrag",
-        "normalization_score_diff_msfinder",
-        "normalization_score_diff_sirius",
-        "normalized_rank_metfrag",
-        "normalized_rank_msfinder",
-        "normalized_rank_sirius",
-        'adduct_MplusHplus',
-        'adduct_MplusNaplus',
-        'adduct_MplusNH4plus',
-        'adduct_MminusHminus',
-        'adduct_MplusClminus',
-        'adduct_MplusFAminusHminus'
-        ]
+ADDUCT_LIST = ['[M+H]+', '[M+Na]+', '[M+NH4]+', '[M-H]-', '[M+Cl]-', '[M+FA-H]-']
+
+
+def add_adduct_columns(wide_df):
+    """One-hot adduct columns (adduct_MplusHplus, ...) from the adduct column."""
+    normalized = (
+        wide_df['adduct'].fillna("").astype(str)
+        .str.replace("+", "plus", regex=False)
+        .str.replace("-", "minus", regex=False)
+        .str.replace("[", "", regex=False)
+        .str.replace("]", "", regex=False)
+    )
+    for ad in ADDUCT_LIST:
+        ad_norm = ad.replace("+", "plus").replace("-", "minus").replace("[", "").replace("]", "")
+        wide_df[f"adduct_{ad_norm}"] = (normalized == ad_norm).astype(int)
+    return wide_df
+
+
+def predict_and_append_rank(df, machine_dir, selection=None):
+    selection = selection or toolsets.resolve_selection(toolsets.STRUCTURE)
+    # find_ranker_model and joblib are looked up in this module so tests can patch them.
+    model_path = find_ranker_model(machine_dir)
+    print(f"Structure ranking model: {model_path}")
+    # Local model file installed with MS-Emblator (models/, see config/toolsets.yaml).
+    model = joblib.load(model_path)
+    feature_columns = calculating_score.model_feature_names(model, toolsets.ranking_features(selection))
+    toolsets.check_model_features(feature_columns, selection, model_path.name)
 
     df_original = df.copy()
     X = df.reindex(columns=feature_columns, fill_value=0).fillna(0)
-
-    model_path = find_ranker_model(machine_dir)
-    print(f"Structure ranking model: {model_path.name}")
-    model = joblib.load(model_path)
-
     df_original["rank_score"] = model.predict(X)
     return df_original
 
@@ -117,7 +123,6 @@ def aggregate_probability_with_rank(
 
 def machine_input_generation(df):
     df["adduct"] = df["adduct"].fillna("").astype(str).replace({"[M+CO2]-": "[M+FA-H]-"})
-    adduct_list = ['[M+H]+', '[M+Na]+', '[M+NH4]+', '[M-H]-', '[M+Cl]-', '[M+FA-H]-']
     # Convert SMILES to Short InChIKey
     convert_to_shortinchikey(df, "SMILES", new_column_name="Short_InChIKey")
 
@@ -158,17 +163,4 @@ def machine_input_generation(df):
     # Merge SMILES into wide_df
     wide_df = pd.merge(wide_df, smiles_df, on="Short_InChIKey", how="left")
     wide_df = wide_df.merge(used_tools_df, on=base_columns, how="left")
-
-    for ad in adduct_list:
-        ad_norm = ad.replace("+", "plus").replace("-", "minus").replace("[", "").replace("]", "")
-        col_name = f"adduct_{ad_norm}"
-        
-        wide_df[col_name] = (
-            wide_df['adduct']
-            .str.replace("+", "plus", regex=False)
-            .str.replace("-", "minus", regex=False)
-            .str.replace("[", "", regex=False)
-            .str.replace("]", "", regex=False)
-            == ad_norm
-        ).astype(int)   
-    return wide_df
+    return add_adduct_columns(wide_df)

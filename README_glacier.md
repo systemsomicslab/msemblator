@@ -14,14 +14,14 @@ What it does:
 - It writes one feature row per candidate structure (Short InChIKey), plus
   optional labels and accuracy.
 
-What it does not do yet:
+GLACIER can also run inside MS-Emblator's structure elucidation with
+`msemblator --structure_tools glacier` (MS-FINDER, GLACIER, MetFrag) or `all`
+(with SIRIUS as well); see "Selecting annotation tools" in `README.md`. That
+needs a ranking model trained for the combination, which does not exist yet.
+The default combination (MS-FINDER, SIRIUS, MetFrag, `models/structure`) is
+unchanged, and GLACIER features are never given to its model.
 
-- train a ranker or normalize the features
-- run inside the default workflow
-
-The default MS-Emblator workflow (MetFrag, SIRIUS, MS-FINDER, `models/structure`,
-`struc_main.py`) is unchanged. GLACIER features must not be given to the
-existing models.
+What it does not do yet: train a ranker or normalize the features.
 
 ## Quick start
 
@@ -556,27 +556,33 @@ tests are in `tests/glacier/`.
   about 10 s per adduct, so a cache was not needed.
 - Scoring several formula groups in parallel (msentity is not thread-safe).
   msentity-similarity still uses its own threads inside one call.
-- Ranker training, feature normalization, and use in `struc_main.py`.
+- Ranking models for the GLACIER tool combinations.
 
-## Replacing SIRIUS: places to change later
+## GLACIER in structure elucidation
 
-- `workflows/struc_main.py`: run GLACIER (`msemblator.glacier.run_glacier`)
-  instead of the SIRIUS block. The input is the same formula-fixed MSP.
-- `summaries/creating_struc_summary.py`: replace `process_sirius_output` with
-  the GLACIER features, joined with `integration.merge_with_candidates`.
-- `scoring/struc_score_calc.py`:
-  - `predict_and_append_rank`: change the feature list.
-  - `machine_input_generation`: change the tool list; it currently has
-    `["metfrag", "sirius", "msfinder"]`.
-- `models/structure`: needs a ranker trained on the new features. Decide the
-  GLACIER feature normalization when training; the current pipelines are
-  `pipeline_csi_fingerid*.pkl`. The existing models must not be given GLACIER
-  features.
-- `analysis/make_training_data.py`:
-  - Add GLACIER to `STRUCTURE_FEATURES` and the readers.
-  - The script imports `msemblator.summaries.sirius_summary`, which does not
-    exist on this branch.
-- `cli/msemblator.py` and `paths.validate_runtime`: modes 2 and 3 still need
-  SIRIUS (login and `sirius.exe`).
+`--structure_tools glacier` (or `all`) runs GLACIER in
+`workflows/struc_main.py` on the same formula-fixed MSP as the other tools.
+
+- `summaries/glacier_struc_summary.py` runs `run_glacier` and keeps
+  `glacier_features.csv` and `glacier_query_status.csv` in
+  `work/structure/glacier_output/`.
+- The GLACIER features are joined to the MetFrag / MS-FINDER (/ SIRIUS)
+  candidates on (`filename`, `Short_InChIKey`). The join is an outer join, so
+  GLACIER-only candidates are added. GLACIER columns of candidates GLACIER did
+  not score are 0 for the ranker, except `GLACIER_Candidate_Count`, which is
+  set for every candidate of the query.
+- `structure_summary.csv` gets `glacier_structure_1..5`, ordered by the entropy
+  rank (the first similarity if entropy is not computed).
+- The ranker reads the features named in the model. GLACIER features are raw,
+  so any scaling must be part of the trained model.
+
+Still to do for a GLACIER ranker:
+
+- Train the models for `models/structure/msfinder_glacier_metfrag/` and
+  `models/structure/msfinder_sirius_metfrag_glacier/`. The training data must
+  be built the same way as at run time: all GLACIER candidates, joined as
+  above.
+- `analysis/make_training_data.py` (local): add GLACIER to `STRUCTURE_FEATURES`
+  and the readers.
 - GLACIER libraries for `[M+Cl]-` and `[M+FA-H]-` (MS-Emblator adducts that
   GLACIER does not cover yet), and one-hot columns for the dehydrated adducts.

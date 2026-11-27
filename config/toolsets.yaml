@@ -1,0 +1,40 @@
+# Annotation tool combinations that msemblator can run (--formula_tools / --structure_tools).
+#
+# Every combination needs its own trained ranking model, so only the combinations
+# listed here can be selected. To add one, train a ranker for it, put the model
+# folder in place and add an entry here.
+#
+# model_dir is relative to models/formula or models/structure (an absolute path is
+# also accepted). It holds the ranking model (xgbranker_final_all.pkl, or the
+# CatBoost / LightGBM file) for that combination. The score normalization
+# pipelines of each tool (pipeline_<tool>_*.pkl) are looked up in model_dir first
+# and then in models/formula or models/structure, so one copy can be shared.
+#
+# Tool names: formula   sirius, msfinder, msbuddy, fiddle
+#             structure msfinder, sirius, metfrag, glacier
+
+formula:
+  default: sirius
+  combinations:
+    sirius:                      # current MS-Emblator models
+      tools: [sirius, msfinder, msbuddy]
+      model_dir: '.'
+    fiddle:                      # SIRIUS-free
+      tools: [msfinder, msbuddy, fiddle]
+      model_dir: 'msfinder_msbuddy_fiddle'
+    all:
+      tools: [sirius, msfinder, msbuddy, fiddle]
+      model_dir: 'sirius_msfinder_msbuddy_fiddle'
+
+structure:
+  default: sirius
+  combinations:
+    sirius:                      # current MS-Emblator models
+      tools: [msfinder, sirius, metfrag]
+      model_dir: '.'
+    glacier:                     # SIRIUS-free
+      tools: [msfinder, glacier, metfrag]
+      model_dir: 'msfinder_glacier_metfrag'
+    all:
+      tools: [msfinder, sirius, metfrag, glacier]
+      model_dir: 'msfinder_sirius_metfrag_glacier'

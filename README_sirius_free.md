@@ -1,10 +1,17 @@
 # SIRIUS-free formula model: annotation setup
 
 This document covers the first step of the SIRIUS-free formula model: running
-MSBuddy, MS-FINDER and FIDDLE on an MSP file in a common output format. Training
-and inference with the new ranker are added in later steps. The default
-MS-Emblator workflow (modes 1–3, `models/formula`, `models/structure`) is not
-changed by anything described here.
+MSBuddy, MS-FINDER and FIDDLE on an MSP file in a common output format, and
+building the FIDDLE features for training a ranker.
+
+MS-Emblator itself can run FIDDLE in formula elucidation with
+`msemblator --formula_tools fiddle` (MS-FINDER, msbuddy, FIDDLE) or `all` (with
+SIRIUS as well); see "Selecting annotation tools" in `README.md`. That needs a
+ranking model trained for the combination in
+`models/formula/msfinder_msbuddy_fiddle/` (or
+`models/formula/sirius_msfinder_msbuddy_fiddle/`) and
+`pipeline_fiddle_score(_diff).pkl` from `fit_fiddle_normalization.py`. The
+default combination (SIRIUS, MS-FINDER, msbuddy, `models/formula`) is unchanged.
 
 ## Environments
 
