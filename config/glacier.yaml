@@ -1,0 +1,110 @@
+# Settings for the GLACIER structure annotation module (src/msemblator/glacier).
+#
+# GLACIER is the planned replacement of SIRIUS in structure annotation
+# (MetFrag + GLACIER + MS-FINDER). The module compares each measured MS/MS spectrum
+# with the GLACIER predicted spectra of every library compound that has the
+# query's molecular formula and adduct, and turns the similarities into ranker
+# features. Nothing in this file changes the default workflow or models/structure.
+#
+# Relative paths are resolved from the repository root.
+# Use single quotes for Windows paths; in double quotes YAML reads \n, \t, ... as escapes.
+
+glacier:
+  # Folder with the predicted spectral libraries (one MSDS file per adduct).
+  library_dir: 'external/glacier'
+
+  # Adduct -> MSDS file in library_dir (an absolute path is also accepted).
+  # An adduct whose file does not exist yet is reported as library_not_available;
+  # the other adducts are still processed. When a new library has been generated,
+  # put it in library_dir under the name below (or change the name here).
+  libraries:
+    '[M-H]-': 'M_minus_H_predictions.msds'
+    '[M-H2O-H]-': 'M_minus_H2O_minus_H_predictions.msds'
+    '[M-H2O+H]+': 'M_minus_H2O_plus_H_predictions.msds'
+    '[M+H]+': 'M_plus_H_predictions.msds'
+    '[M+Na]+': 'M_plus_Na_predictions.msds'
+    '[M+NH4]+': 'M_plus_NH4_predictions.msds'
+
+  # Other spellings of the adducts above (spaces are ignored; a charge written as
+  # "1+" / "1-" is read as "+" / "-"). Used for the query MSP and the libraries.
+  adduct_aliases:
+    '[M+H-H2O]+': '[M-H2O+H]+'
+    '[M-H-H2O]-': '[M-H2O-H]-'
+    '[M+H3N+H]+': '[M+NH4]+'
+    '[M+H+NH3]+': '[M+NH4]+'
+    '[M+NH3+H]+': '[M+NH4]+'
+
+  # How the FORMULA column of each library is defined, per adduct:
+  #   auto      detect from the library precursor m/z (default)
+  #   neutral   FORMULA is the neutral molecule M
+  #   modified  FORMULA already includes the neutral part of the adduct (e.g. M - H2O)
+  # The query formula is always the neutral molecule and is converted once,
+  # only when the library uses the modified definition.
+  formula_basis:
+    default: auto
+
+  # Collision energies (eV) used for the CE-specific features. Library spectra
+  # with another energy are skipped; spectra without an energy are kept in the
+  # raw output (collision_energy empty) but are not used for features.
+  collision_energies: [10, 40]
+
+  # MS2 peak matching (msentity-similarity): one-to-one, closest pairs first.
+  ms2_tolerance: 20
+  ms2_tolerance_unit: ppm        # ppm or Da
+  intensity_exponent: 1.0        # 1.0 = intensities are used as they are
+
+  # Similarities to calculate (each one adds 5 features):
+  #   cosine, reverse_cosine, modified_cosine, bonanza  (msentity-similarity)
+  #   entropy  weighted spectral entropy (ms_entropy package, optional)
+  similarities: [cosine, reverse_cosine, entropy]
+
+  # Removal of the precursor peak before scoring. On by default for the measured
+  # spectra: the precursor is the base peak of most measured spectra (92.5% of
+  # NIST26 [M-H]-), and keeping it raised the score of wrong candidates.
+  # Set enabled: false (or --remove-precursor off) to score the spectra as they are.
+  # A peak is removed when |m/z - precursor m/z| <= tolerance; ppm is relative to
+  # the precursor m/z. The precursor m/z is the spectrum's own value (PRECURSORMZ
+  # of the query MSP, PrecursorMZ of the library); spectra without one are kept.
+  #   spectra: measured  only the measured spectra
+  #            both      measured and GLACIER predicted spectra
+  # It applies to every similarity. A measured spectrum with no other peak gets
+  # the status no_valid_peaks.
+  precursor_peak_removal:
+    enabled: true
+    tolerance: 20
+    tolerance_unit: ppm          # ppm or Da
+    spectra: measured            # measured or both
+
+  # Options of the entropy similarity (MSEntropy defaults). MSEntropy cleans
+  # both spectra before scoring: peaks below noise_threshold x base peak are
+  # removed and peaks closer than 2 x tolerance are merged.
+  entropy:
+    clean_spectra: true
+    noise_threshold: 0.01
+
+  # Threads used by msentity-similarity within one call (0 = its default; it
+  # starts several threads from 2048 spectrum pairs). Formula groups are scored
+  # one after another.
+  threads: 0
+
+  # Adduct one-hot columns, named as in the existing structure features
+  # (adduct_MplusHplus, ...). Adducts not listed here get no column.
+  adduct_features: ['[M+H]+', '[M+Na]+', '[M+NH4]+', '[M-H]-', '[M+Cl]-', '[M+FA-H]-']
+
+  # Metadata columns of the query MSP (read with msentity, canonical column names).
+  # The first column present wins.
+  query_columns:
+    name: [Name]
+    adduct: [AdductType]
+    formula: [Formula]
+    precursor_mz: [PrecursorMZ]
+
+  # Metadata columns of the library MSDS files. The first column present wins.
+  library_columns:
+    spec_id: [SPECID, SpecID, SCANS, TITLE]
+    smiles: [SMILES]
+    inchikey: [INCHIKEY, InChIKey]
+    formula: [FORMULA, Formula]
+    adduct: [ION, AdductType, PredictionAdduct]
+    collision_energy: [PredictionCollisionEnergyEV, CollisionEnergy, COLLISIONENERGY]
+    precursor_mz: [PrecursorMZ, PEPMASS, PredictionPrecursorMZ]
