@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" width="1254" height="1254">
+  <defs>
+    <linearGradient id="frame" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#0047b3"/>
+      <stop offset="0.42" stop-color="#0388da"/>
+      <stop offset="0.62" stop-color="#02c6cc"/>
+      <stop offset="0.82" stop-color="#2fc98a"/>
+      <stop offset="1" stop-color="#66d935"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.6" stop-color="#fbfdfe"/>
+      <stop offset="1" stop-color="#dff1fa"/>
+    </linearGradient>
+    <linearGradient id="peaks" gradientUnits="userSpaceOnUse" x1="360" y1="0" x2="800" y2="0">
+      <stop offset="0" stop-color="#1544c2"/>
+      <stop offset="0.45" stop-color="#127fc6"/>
+      <stop offset="0.75" stop-color="#14a89d"/>
+      <stop offset="1" stop-color="#36c043"/>
+    </linearGradient>
+    <linearGradient id="base" gradientUnits="userSpaceOnUse" x1="250" y1="0" x2="1080" y2="0">
+      <stop offset="0" stop-color="#1550cc"/>
+      <stop offset="0.5" stop-color="#139bb5"/>
+      <stop offset="1" stop-color="#5ed22a"/>
+    </linearGradient>
+    <linearGradient id="swoosh-left" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b3fb8"/>
+      <stop offset="1" stop-color="#2390e2"/>
+    </linearGradient>
+    <linearGradient id="swoosh-right" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#14a6a6"/>
+      <stop offset="1" stop-color="#62d527"/>
+    </linearGradient>
+    <linearGradient id="ring" gradientUnits="userSpaceOnUse" x1="720" y1="600" x2="1010" y2="300">
+      <stop offset="0" stop-color="#1fa3a8"/>
+      <stop offset="1" stop-color="#4ccd3c"/>
+    </linearGradient>
+  </defs>
+  <polygon points="627.0,70.0 1108.5,348.0 1108.5,904.0 627.0,1182.0 145.5,904.0 145.5,348.0" fill="url(#paper)"/>
+  <polygon points="627.0,70.0 1108.5,348.0 1108.5,904.0 627.0,1182.0 145.5,904.0 145.5,348.0" fill="none" stroke="url(#frame)" stroke-width="46" stroke-linejoin="round"/>
+  <path fill="url(#swoosh-left)" d="M 505 303 C 300 340, 150 430, 183 522 C 214 604, 365 664, 565 690 C 385 652, 250 598, 228 520 C 206 446, 330 362, 505 303 Z"/>
+  <path fill="url(#swoosh-right)" d="M 690 703 C 905 690, 1082 650, 1077 586 C 1073 540, 1012 510, 932 490 C 994 520, 1035 550, 1030 588 C 1022 642, 882 682, 690 703 Z"/>
+  <line x1="262" y1="668" x2="912" y2="668" stroke="url(#base)" stroke-width="9" stroke-linecap="round"/>
+  <line x1="381" y1="598" x2="381" y2="662" stroke="url(#peaks)" stroke-width="27" stroke-linecap="round"/>
+  <line x1="431" y1="452" x2="431" y2="662" stroke="url(#peaks)" stroke-width="27" stroke-linecap="round"/>
+  <line x1="488" y1="557" x2="488" y2="662" stroke="url(#peaks)" stroke-width="27" stroke-linecap="round"/>
+  <line x1="561" y1="205" x2="561" y2="662" stroke="url(#peaks)" stroke-width="27" stroke-linecap="round"/>
+  <line x1="623" y1="447" x2="623" y2="662" stroke="url(#peaks)" stroke-width="27" stroke-linecap="round"/>
+  <line x1="680" y1="522" x2="680" y2="662" stroke="url(#peaks)" stroke-width="27" stroke-linecap="round"/>
+  <line x1="726" y1="583" x2="726" y2="662" stroke="url(#peaks)" stroke-width="27" stroke-linecap="round"/>
+  <line x1="766" y1="634" x2="766" y2="662" stroke="url(#peaks)" stroke-width="27" stroke-linecap="round"/>
+  <polygon points="857.0,360.0 936.7,406.0 936.7,498.0 857.0,544.0 777.3,498.0 777.3,406.0" fill="none" stroke="url(#ring)" stroke-width="13" stroke-linejoin="round"/>
+  <line x1="857.0" y1="360.0" x2="857" y2="302" stroke="url(#ring)" stroke-width="13" stroke-linecap="round"/>
+  <circle cx="857" cy="302" r="21" fill="url(#ring)"/>
+  <line x1="936.7" y1="406.0" x2="1005" y2="380" stroke="url(#ring)" stroke-width="13" stroke-linecap="round"/>
+  <circle cx="1005" cy="380" r="21" fill="url(#ring)"/>
+  <line x1="777.3" y1="406.0" x2="727" y2="410" stroke="url(#ring)" stroke-width="13" stroke-linecap="round"/>
+  <circle cx="727" cy="410" r="21" fill="url(#ring)"/>
+  <line x1="857.0" y1="544.0" x2="849" y2="600" stroke="url(#ring)" stroke-width="13" stroke-linecap="round"/>
+  <circle cx="849" cy="600" r="21" fill="url(#ring)"/>
+  <line x1="862.9" y1="386.5" x2="910.7" y2="414.1" stroke="url(#ring)" stroke-width="9.8" stroke-linecap="round"/>
+  <line x1="797.3" y1="479.6" x2="797.3" y2="424.4" stroke="url(#ring)" stroke-width="9.8" stroke-linecap="round"/>
+  <text x="627" y="853" text-anchor="middle" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-weight="800" font-size="156" letter-spacing="-3" textLength="866" lengthAdjust="spacingAndGlyphs" fill="#0e1b3d">MS-Emblator</text>
+</svg>

@@ -116,6 +116,30 @@ def step_of(line: str) -> str | None:
     return match.group(2) if match.group(3) == "start" else None
 
 
+# --- shortcuts ------------------------------------------------------------------
+
+SHORTCUT_SCRIPT = paths.PROJECT_ROOT / "scripts" / "create_shortcut.ps1"
+
+
+def create_shortcuts(folders=None) -> list[str]:
+    """Desktop and Start menu shortcuts (or into `folders`) that start msemblator_gui.cmd.
+
+    Uses scripts/create_shortcut.ps1, the same script as scripts/create_shortcut.cmd.
+    """
+    import subprocess
+
+    base = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(SHORTCUT_SCRIPT)]
+    commands = [base + ["-Folder", str(f)] for f in folders] if folders else [base]
+    created = []
+    for command in commands:
+        result = subprocess.run(command, capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if result.returncode != 0:
+            message = " ".join(decode_line(line) for line in result.stderr.splitlines() if line.strip())
+            raise RuntimeError(message or f"PowerShell exited with code {result.returncode}")
+        created += [decode_line(line) for line in result.stdout.splitlines() if line.strip()]
+    return created
+
+
 # --- parameter file -------------------------------------------------------------
 
 def read_parameters(path=None) -> dict:

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" width="1254" height="1254">
+  <defs>
+    <linearGradient id="frame" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#0047b3"/>
+      <stop offset="0.42" stop-color="#0388da"/>
+      <stop offset="0.62" stop-color="#02c6cc"/>
+      <stop offset="0.82" stop-color="#2fc98a"/>
+      <stop offset="1" stop-color="#66d935"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.6" stop-color="#fbfdfe"/>
+      <stop offset="1" stop-color="#dff1fa"/>
+    </linearGradient>
+    <linearGradient id="peaks" gradientUnits="userSpaceOnUse" x1="360" y1="0" x2="800" y2="0">
+      <stop offset="0" stop-color="#1544c2"/>
+      <stop offset="0.45" stop-color="#127fc6"/>
+      <stop offset="0.75" stop-color="#14a89d"/>
+      <stop offset="1" stop-color="#36c043"/>
+    </linearGradient>
+    <linearGradient id="base" gradientUnits="userSpaceOnUse" x1="250" y1="0" x2="1080" y2="0">
+      <stop offset="0" stop-color="#1550cc"/>
+      <stop offset="0.5" stop-color="#139bb5"/>
+      <stop offset="1" stop-color="#5ed22a"/>
+    </linearGradient>
+    <linearGradient id="swoosh-left" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b3fb8"/>
+      <stop offset="1" stop-color="#2390e2"/>
+    </linearGradient>
+    <linearGradient id="swoosh-right" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#14a6a6"/>
+      <stop offset="1" stop-color="#62d527"/>
+    </linearGradient>
+    <linearGradient id="ring" gradientUnits="userSpaceOnUse" x1="720" y1="600" x2="1010" y2="300">
+      <stop offset="0" stop-color="#1fa3a8"/>
+      <stop offset="1" stop-color="#4ccd3c"/>
+    </linearGradient>
+  </defs>
+  <defs><linearGradient id="tinypeaks" gradientUnits="userSpaceOnUse" x1="420" y1="0" x2="880" y2="0"><stop offset="0" stop-color="#1544c2"/><stop offset="0.5" stop-color="#1290c0"/><stop offset="1" stop-color="#36c043"/></linearGradient></defs>
+  <polygon points="627.0,70.0 1108.5,348.0 1108.5,904.0 627.0,1182.0 145.5,904.0 145.5,348.0" fill="url(#paper)"/>
+  <polygon points="627.0,70.0 1108.5,348.0 1108.5,904.0 627.0,1182.0 145.5,904.0 145.5,348.0" fill="none" stroke="url(#frame)" stroke-width="120" stroke-linejoin="round"/>
+  <line x1="470" y1="760" x2="470" y2="900" stroke="url(#tinypeaks)" stroke-width="92" stroke-linecap="round"/>
+  <line x1="590" y1="420" x2="590" y2="900" stroke="url(#tinypeaks)" stroke-width="92" stroke-linecap="round"/>
+  <line x1="710" y1="600" x2="710" y2="900" stroke="url(#tinypeaks)" stroke-width="92" stroke-linecap="round"/>
+  <line x1="830" y1="700" x2="830" y2="900" stroke="url(#tinypeaks)" stroke-width="92" stroke-linecap="round"/>
+</svg>

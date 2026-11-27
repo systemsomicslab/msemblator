@@ -330,7 +330,16 @@ A desktop window runs the same analysis without typing commands:
 
 ```powershell
 .\msemblator_gui.cmd          # inside the activated environment also: python -m msemblator.gui
+.\scripts\create_shortcut.cmd # desktop and Start menu shortcuts with the MS-Emblator icon
 ```
+
+The shortcuts (also **Help > Create desktop and Start menu shortcuts**) start
+`msemblator_gui.cmd` of this folder; create them again after moving the
+repository. The icon is drawn as SVG (`src/msemblator/gui/assets/*.svg`: the
+full logo, a compact version without text for 32–96 px and a simpler one for
+16–24 px); `python scripts/build_icons.py` (needs `pip install resvg_py`)
+renders `msemblator.ico` and the PNG files from them, every size from the
+vector drawing.
 
 - **Left:** the spectra of the opened MSP, with the MS/MS spectrum of the
   selected one below.

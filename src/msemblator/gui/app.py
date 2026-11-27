@@ -126,6 +126,8 @@ class App:
         settings_menu.add_command(label="Set up FIDDLE…", command=self.open_fiddle_setup)
         menu.add_cascade(label="Settings", menu=settings_menu)
         help_menu = tk.Menu(menu, tearoff=False)
+        help_menu.add_command(label="Create desktop and Start menu shortcuts", command=self.create_shortcuts)
+        help_menu.add_separator()
         help_menu.add_command(label="About MS-Emblator", command=self.about)
         menu.add_cascade(label="Help", menu=help_menu)
         self.root.config(menu=menu)
@@ -761,10 +763,35 @@ class App:
         self.log.see("end")
         self.log.configure(state="disabled")
 
+    def create_shortcuts(self):
+        try:
+            created = backend.create_shortcuts()
+        except Exception as exc:
+            messagebox.showerror(APP_TITLE, f"The shortcuts could not be created:\n{exc}\n\n"
+                                            "scripts\\create_shortcut.cmd does the same from Explorer.")
+            return
+        messagebox.showinfo(APP_TITLE, "Shortcuts with the MS-Emblator icon:\n\n" + "\n".join(created)
+                            + "\n\nThey start this copy of MS-Emblator; create them again after moving it.")
+
     def about(self):
-        messagebox.showinfo(f"About {APP_TITLE}", f"{APP_TITLE}\nEnsemble annotation of MS/MS spectra.\n\n"
-                                                  f"Program folder: {paths.PROJECT_ROOT}\n"
-                                                  f"Settings: {gui_settings.settings_path()}")
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"About {APP_TITLE}")
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+        frame = ttk.Frame(dialog, padding=16)
+        frame.pack()
+        try:
+            logo = tk.PhotoImage(file=str(ICON_128))
+            dialog.logo = logo
+            ttk.Label(frame, image=logo).grid(row=0, column=0, rowspan=3, padx=(0, 16))
+        except tk.TclError:
+            pass
+        ttk.Label(frame, text=APP_TITLE, style="Title.TLabel").grid(row=0, column=1, sticky="w")
+        ttk.Label(frame, text="Ensemble annotation of MS/MS spectra").grid(row=1, column=1, sticky="w")
+        ttk.Label(frame, foreground=MUTED, justify="left",
+                  text=f"Program folder: {paths.PROJECT_ROOT}\nSettings: {gui_settings.settings_path()}"
+                  ).grid(row=2, column=1, sticky="w", pady=(8, 0))
+        ttk.Button(frame, text="Close", command=dialog.destroy).grid(row=3, column=1, sticky="e", pady=(12, 0))
 
     def on_close(self):
         if self.process is not None:
@@ -775,21 +802,44 @@ class App:
         self.root.destroy()
 
 
+ASSETS = Path(__file__).resolve().parent / "assets"
+ICON_ICO = ASSETS / "msemblator.ico"
+ICON_PNG = ASSETS / "msemblator.png"            # 256 px
+ICON_128 = ASSETS / "msemblator_128.png"        # About dialog (rendered at this size, not scaled)
+
+
+def set_icon(root):
+    """MS-Emblator logo for the main window, its dialogs and the taskbar."""
+    try:
+        if os.name == "nt" and ICON_ICO.is_file():
+            root.iconbitmap(default=str(ICON_ICO))      # default: also every dialog
+        elif ICON_PNG.is_file():
+            root.icon_image = tk.PhotoImage(file=str(ICON_PNG))
+            root.iconphoto(True, root.icon_image)
+    except tk.TclError:
+        pass   # an icon is cosmetic; never stop the GUI for it
+
+
 def create_root():
     """Tk root window, with drag and drop when tkinterdnd2 is installed."""
+    root = None
     if TkinterDnD is not None:
         try:
-            return TkinterDnD.Tk()
+            root = TkinterDnD.Tk()
         except Exception:
-            pass
-    return tk.Tk()
+            root = None
+    root = root or tk.Tk()
+    set_icon(root)
+    return root
 
 
 def main():
     if os.name == "nt":
-        try:   # sharp text on high-DPI screens
+        try:
             import ctypes
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)   # sharp text on high-DPI screens
+            # Own taskbar entry with the MS-Emblator icon, instead of being grouped under Python.
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MS-Emblator.GUI")
         except Exception:
             pass
     root = create_root()

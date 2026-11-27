@@ -145,6 +145,40 @@ class SettingsAndDrawingTest(unittest.TestCase):
         self.assertEqual([list(hit_a), list(hit_b)], [[True, False], [True, False]])
 
 
+@unittest.skipUnless(sys.platform == "win32", "Windows shortcuts")
+class ShortcutTest(unittest.TestCase):
+    def test_shortcut_starts_the_gui_with_the_icon(self):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as tmp:
+            created = backend.create_shortcuts([tmp])
+            self.assertEqual(created, [str(Path(tmp) / "MS-Emblator.lnk")])
+            read = subprocess.run(
+                ["powershell", "-NoProfile", "-Command",
+                 f"$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{created[0]}'); "
+                 "$s.TargetPath; $s.IconLocation; $s.WorkingDirectory"],
+                capture_output=True, text=True)
+        target, icon, folder = read.stdout.strip().splitlines()
+        self.assertEqual(Path(target), ROOT / "msemblator_gui.cmd")
+        self.assertTrue(icon.endswith(r"src\msemblator\gui\assets\msemblator.ico,0"), icon)
+        self.assertEqual(Path(folder), ROOT)
+
+    def test_icon_files_are_in_the_package(self):
+        from PIL import Image
+
+        from msemblator.gui import app
+
+        for path in (app.ICON_ICO, app.ICON_PNG, app.ICON_128):
+            self.assertTrue(path.is_file(), path)
+        for name in ("msemblator_logo.svg", "msemblator_icon.svg", "msemblator_icon_small.svg"):
+            self.assertTrue((app.ASSETS / name).is_file(), name)     # the vector masters
+        with Image.open(app.ICON_ICO) as ico:
+            self.assertEqual(sorted(ico.ico.sizes()),
+                             [(s, s) for s in (16, 20, 24, 32, 40, 48, 64, 96, 128, 256)])
+        with Image.open(app.ICON_128) as about:
+            self.assertEqual(about.size, (128, 128))
+
+
 class MainWindowTest(unittest.TestCase):
     """Open the window, run a fake analysis and check that its results are shown."""
 

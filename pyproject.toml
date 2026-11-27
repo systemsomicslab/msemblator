@@ -20,4 +20,4 @@ msemblator-gui = "msemblator.gui.app:main"
 dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.package-data]
-msemblator = ["*.yaml"]
+msemblator = ["*.yaml", "gui/assets/*"]
