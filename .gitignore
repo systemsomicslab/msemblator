@@ -16,6 +16,7 @@ sirius/output/
 outputs/
 .env
 analysis/
+outputs/
 
 # Local notebook for generating labeled machine-learning input data.
 notebooks/generate_ml_input.ipynb
