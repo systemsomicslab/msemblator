@@ -1,0 +1,14 @@
+# Extra packages for the GLACIER module (src/msemblator/glacier), installed into the
+# msemblator environment. msentity / msentity-similarity are published on GitHub
+# Releases, not on PyPI, hence the --find-links lines.
+#
+#   conda activate msemblator
+#   python -m pip install -r envs/glacier/requirements-glacier.txt
+#
+# msentity-similarity 2.0.1 requires exactly msentity 1.2.2.
+--find-links https://github.com/MotohiroOGAWA/msentity/releases/expanded_assets/v1.2.2
+--find-links https://github.com/MotohiroOGAWA/msentity-similarity/releases/expanded_assets/v2.0.1
+msentity==1.2.2
+msentity-similarity==2.0.1
+# Only needed when "entropy" is listed in glacier.similarities.
+ms_entropy==1.5.3
