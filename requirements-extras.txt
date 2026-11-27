@@ -1,0 +1,19 @@
+# Packages for FIDDLE (formula) and GLACIER (structure), installed into the same
+# environment as MS-Emblator (environment.yml installs this file).
+#
+#   python -m pip install -r requirements-extras.txt
+#
+# Checked together with requirements.txt on Windows 11, Python 3.12 (2026-11-27):
+# pip check is clean, no package of requirements.txt changes version, and FIDDLE
+# reproduces envs/fiddle/reference exactly (scripts/sirius_free/check_fiddle_install.py).
+
+# --- FIDDLE: CPU PyTorch and msfiddle ---------------------------------------------
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.15.0+cpu
+msfiddle[inference]==2.3.0
+pyarrow==26.0.1
+pyteomics==5.0.2
+molmass==2026.11.1
+
+# --- GLACIER: msentity / msentity-similarity (GitHub releases) and MSEntropy -------
+-r envs/glacier/requirements-glacier.txt

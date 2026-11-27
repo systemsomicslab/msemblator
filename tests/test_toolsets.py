@@ -96,6 +96,11 @@ class AssetCheckTest(unittest.TestCase):
         patcher = mock.patch.multiple(paths, **self.dirs)
         patcher.start()
         self.addCleanup(patcher.stop)
+        # The FIDDLE weights live in the user's home folder; treat them as present here.
+        from msemblator import fiddle_setup
+        weights = mock.patch.object(fiddle_setup, "missing_weights", return_value=[])
+        weights.start()
+        self.addCleanup(weights.stop)
         # FIDDLE environment: a python.exe given in the parameter file.
         self.python = root / "fiddle" / "python.exe"
         self.touch(self.python)
@@ -138,8 +143,20 @@ class AssetCheckTest(unittest.TestCase):
         self.assertEqual(selection.pipeline_dir("fiddle"), str(selection.model_dir))
 
     def test_missing_fiddle_environment_is_reported(self):
-        self.python.unlink()
-        missing = toolsets.tool_assets_missing(toolsets.resolve_selection(FORMULA, "fiddle"))
+        from msemblator import fiddle_setup
+
+        selection = toolsets.resolve_selection(FORMULA, "fiddle")
+
+        def fiddle_items():
+            return [m for m in toolsets.tool_assets_missing(selection) if "fiddle" in m.lower()]
+
+        with mock.patch("importlib.util.find_spec", side_effect=lambda name: None):   # msfiddle not installed here
+            self.assertEqual(fiddle_items(), [])
+            with mock.patch.object(fiddle_setup, "missing_weights", return_value=["w/fiddle_tcn_qtof.pt"]):
+                missing = fiddle_items()
+            self.assertTrue(any("FIDDLE weights" in m for m in missing), missing)
+            self.python.unlink()
+            missing = fiddle_items()
         self.assertTrue(any("formula_prediction.fiddle.python" in m for m in missing), missing)
 
     def test_glacier_needs_settings_and_a_library(self):
@@ -280,6 +297,37 @@ class CliToolOptionTest(unittest.TestCase):
                                   "--formula_tools", "sirius,fiddle"])
         self.assertEqual(code, 2)
         self.assertIn("No formula model is registered", out)
+
+    def run_formula(self, extra_argv):
+        """Mode 1 with the given options; returns the keyword arguments formula_elucidation received."""
+        with tempfile.TemporaryDirectory() as tmp:
+            received = {}
+
+            def formula(msp, out, name_df, failed, selection, **options):
+                received.update(options)
+                return pd.DataFrame({"filename": [], "formula": []})
+
+            code, out = self.run_cli(
+                ["--input", "in.msp", "--output", str(Path(tmp) / "out"), "--mode", "1"] + extra_argv,
+                WORK_DIR=tmp, validate_runtime=mock.DEFAULT, ensure_runtime_directories=mock.DEFAULT,
+                modify_msp_data_type=mock.DEFAULT, save_updated_msp=mock.DEFAULT,
+                convert_name_to_peakid=mock.Mock(return_value=("", pd.DataFrame())),
+                formula_elucidation=formula, sirius_login=mock.DEFAULT)
+        return code, out, received
+
+    def test_fiddle_collision_energy_option_takes_priority(self):
+        code, _, received = self.run_formula(["--formula_tools", "fiddle", "--fiddle_ce", "35"])
+        self.assertEqual(code, 0)
+        self.assertEqual(received, {"fiddle_overrides": {"default_collision_energy": 35.0,
+                                                         "override_collision_energy": True}})
+        # Without the option the parameter file decides; with SIRIUS tools it does not apply.
+        self.assertEqual(self.run_formula(["--formula_tools", "fiddle"])[2], {})
+        code, out, received = self.run_formula(["--fiddle_ce", "35"])
+        self.assertEqual((code, received), (0, {}))
+        self.assertIn("--fiddle_ce is ignored", out)
+        with redirect_stdout(io.StringIO()), mock.patch("sys.stderr", io.StringIO()), \
+                self.assertRaises(SystemExit):
+            self.run_formula(["--formula_tools", "fiddle", "--fiddle_ce", "-5"])
 
     def test_selection_is_passed_and_sirius_login_skipped(self):
         from msemblator.cli import msemblator as cli

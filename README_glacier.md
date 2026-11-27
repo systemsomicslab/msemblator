@@ -28,7 +28,8 @@ What it does not do yet: train a ranker or normalize the features.
 ```powershell
 conda activate msemblator
 
-# 1. Extra packages (once)
+# 1. The GLACIER packages are part of the MS-Emblator environment (environment.yml
+#    -> requirements-extras.txt). Only for an environment created before that:
 python -m pip install -r envs/glacier/requirements-glacier.txt
 
 # 2. Unit tests (synthetic libraries; no real data needed)
@@ -47,11 +48,10 @@ Before step 3, put the predicted libraries in `external/glacier/` (see
 
 | Package | Version | Used for | License |
 | --- | --- | --- | --- |
-| msentity | 1.2.2 | reading MSP and MSDS | MIT |
-| msentity-similarity | 2.0.1 | cosine and reverse cosine (also modified cosine, BONANZA) | MIT |
-| ms_entropy | 1.5.3 | weighted spectral entropy (only needed when `entropy` is selected) | Apache-2.0 |
+| msentity | 1.2.3 | reading MSP and MSDS | MIT |
+| msentity-similarity | 2.1.0 | every similarity: cosine, reverse cosine, spectral entropy (also modified cosine, BONANZA, unweighted entropy) | MIT |
 
-- msentity-similarity 2.0.1 requires exactly msentity 1.2.2.
+- msentity-similarity 2.1.0 requires exactly msentity 1.2.3. Spectral entropy is part of it from 2.1.0; the `ms_entropy` package is no longer used.
 - The `msemblator` environment sets `PYTHONNOUSERSITE=1`. The packages must be
   installed into the environment itself; a copy in the user site-packages
   (`%APPDATA%\Python`) is ignored.
@@ -240,9 +240,8 @@ example `{"similarities": ["cosine"]}`.
 | `collision_energies` | `[10, 40]` | Energies (eV) that become features. |
 | `ms2_tolerance`, `ms2_tolerance_unit` | 20, ppm | Fragment matching tolerance. |
 | `intensity_exponent` | 1.0 | Intensities are used as they are. |
-| `similarities` | `[cosine, reverse_cosine, entropy]` | Also `modified_cosine`, `bonanza`. Each adds five features. |
+| `similarities` | `[cosine, reverse_cosine, entropy]` | Also `modified_cosine`, `bonanza`, `unweighted_entropy`. Each adds five features. |
 | `precursor_peak_removal` | on, `measured`, 20 ppm | See [Precursor peak removal](#precursor-peak-removal). |
-| `entropy` | `clean_spectra: true`, `noise_threshold: 0.01` | MSEntropy options. |
 | `threads` | 0 | Threads inside msentity-similarity (0 = its default). |
 | `adduct_features` | six MS-Emblator adducts | One-hot columns, named as in the existing structure features. |
 | `query_columns`, `library_columns` | see the file | Metadata column names. |
@@ -340,16 +339,25 @@ The raw output keeps the share of matched intensity:
 Each is Σx² over the matched peaks divided by Σx² over all peaks.
 msentity-similarity does not report a matched peak count.
 
-### Entropy (ms_entropy)
+### Spectral entropy (msentity-similarity)
 
-This is the weighted spectral entropy similarity with MSEntropy's own cleaning:
+`entropy` is the weighted spectral entropy similarity (Li et al., 2021),
+calculated by msentity-similarity 2.1 on the same one-to-one peak pairs as
+cosine:
 
-- peaks below 1% of the base peak are removed
-- peaks closer than 2 × tolerance are merged
-- intensities are normalized to sum to 1
+- intensities are normalized to sum to 1;
+- a spectrum with entropy H < 3 is reweighted, p^(0.25 + 0.25 H), and
+  normalized again (`unweighted_entropy` skips this step);
+- each matched pair adds (f(p + q) − f(p) − f(q)) / 2, with f(x) = x log2 x;
+- the spectra are not cleaned: no noise filter and no merging of close peaks.
 
-The ppm tolerance is relative to the m/z of the measured peak. The cleaning
-applies to entropy only.
+Until 2026-11-27 the `ms_entropy` package (MSEntropy) was used. MSEntropy
+removes peaks below 1% of the base peak, merges peaks closer than
+2 × tolerance, pairs the first eligible peaks in m/z order and measures ppm
+from the measured peak. On the NIST26 [M-H]- pairs the two calculations
+correlate with r = 0.91 (median absolute difference 0.002; 66% of pairs
+differ by less than 0.01). The top entropy candidate is the same for 74% of
+the spectra, and Top-1 accuracy is 50.6% against 50.2% before.
 
 ### Value range
 
@@ -449,7 +457,7 @@ CSV files are written as UTF-8 with BOM, so Excel opens them correctly.
 
 | Symptom | Cause and fix |
 | --- | --- |
-| `ModuleNotFoundError: msentity` (or `msentity_similarity`, `ms_entropy`) | Install `envs/glacier/requirements-glacier.txt` into the `msemblator` environment. |
+| `ModuleNotFoundError: msentity` (or `msentity_similarity`) | Start MS-Emblator with `msemblator.cmd` / `msemblator_gui.cmd` (they update the environment), or install `envs/glacier/requirements-glacier.txt` into it. |
 | `Output files already exist ... Use --overwrite` | Add `--overwrite`, or choose another `--output`. |
 | All queries of an adduct are `library_not_available` with `file_missing` | The MSDS is not in `library_dir` under the configured name. |
 | `... no usable spectrum for [M+X]+ ...; adduct values in the file: [...]` | The library writes the adduct in another spelling. Add it to `adduct_aliases`. |
@@ -476,24 +484,29 @@ default settings (precursor peak removed from the measured spectra).
 | --- | --- | --- | --- | --- |
 | cosine | 47.3% | 72.4% | 80.7% | 48.2% |
 | reverse cosine | 44.6% | 70.5% | 79.2% | 45.5% |
-| entropy | 50.2% | 75.8% | 82.5% | 51.1% |
+| entropy | 50.6% | 75.5% | 83.0% | 51.6% |
+| unweighted entropy (not a default) | 49.8% | 74.8% | 82.8% | 50.8% |
 
-The first three columns use all 4,417 queries as the denominator.
+The first three columns use all 4,417 queries as the denominator. The entropy
+rows use msentity-similarity 2.1.0 (with MSEntropy, before 2026-11-27, entropy
+reached 50.2%, 75.8% and 82.5%).
 
 ### Run time
 
 Run times are in seconds, on a 20-thread Windows machine. The default column is
-the run above; the other columns change one setting.
+the run above (msentity-similarity 2.1.0, 2026-11-27); the other columns change
+one setting and were measured with the MSEntropy-based entropy.
 
 | Step | Default (measured removal, 3 similarities) | No removal | No removal, cosine and reverse only | Removal on both sides |
 | --- | --- | --- | --- | --- |
 | Read the query MSP (17,401 spectra) | 0.8 | 0.8 | 0.7 | 0.9 |
-| Load the library and build the index | 10.2 | 9.5 | 9.9 | 10.9 |
-| Score the pairs (about 290,000) | 16.4 | 15.3 | 11.0 | 18.6 |
-| Build the features | 1.6 | 1.4 | 1.4 | 1.4 |
-| Total, including writing the CSVs | 33.8 | 31.7 | 26.9 | 35.8 |
+| Load the library and build the index | 10.0 | 9.5 | 9.9 | 10.9 |
+| Score the pairs (about 290,000) | 10.4 | 15.3 | 11.0 | 18.6 |
+| Build the features | 1.4 | 1.4 | 1.4 | 1.4 |
+| Total, including writing the CSVs | 27.5 | 31.7 | 26.9 | 35.8 |
 
-- Entropy adds about 4 s.
+- Calculated in msentity-similarity, entropy costs almost nothing extra; with
+  MSEntropy it added about 4 s.
 - The library is loaded once per adduct.
 - Scoring time grows with the number of pairs: the sum, over queries, of the
   candidate spectra per query. `[M+H]+` has about twice as many NIST26 queries
@@ -505,7 +518,7 @@ In 92.5% of the measured [M-H]- spectra, the base peak is the precursor peak.
 That is true for only 27% of the predicted spectra.
 
 4,328 of the 4,417 measured spectra had exactly one peak within the window, and
-89 had none. Top-1 (all queries):
+89 had none. Top-1 (all queries; entropy with MSEntropy, as measured then):
 
 | Similarity | Off | Measured, 20 ppm (default) | Measured, 0.01 Da | Both, 20 ppm |
 | --- | --- | --- | --- | --- |
@@ -539,7 +552,7 @@ adducts needs the real libraries.
 | `queries.py` | Measured spectra from the MSP (no answer fields). |
 | `preprocessing.py` | Precursor peak removal. |
 | `library.py` | Predicted libraries: file lookup, loading, checks, formula index. |
-| `similarity.py` | Cosine / reverse cosine (msentity-similarity), entropy (ms_entropy). |
+| `similarity.py` | Cosine, reverse cosine and spectral entropy (msentity-similarity). |
 | `features.py` | Energy and Short InChIKey aggregation; Max, Rank, ScoreDiff, candidate count. |
 | `pipeline.py` | `run_glacier()`: the whole flow, shared by training and inference. |
 | `labels.py` | Answers and the `TF` label (training only). |

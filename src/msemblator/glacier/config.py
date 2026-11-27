@@ -7,6 +7,7 @@ come from this configuration.
 from __future__ import annotations
 
 import copy
+import logging
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +25,7 @@ METHOD_LABELS = {
     "modified_cosine": "ModifiedCosine",
     "bonanza": "Bonanza",
     "entropy": "Entropy",
+    "unweighted_entropy": "UnweightedEntropy",
 }
 FORMULA_BASES = ("auto", "neutral", "modified")
 PRECURSOR_REMOVAL_SPECTRA = ("measured", "both")
@@ -62,7 +64,6 @@ class GlacierConfig:
     ms2_tolerance_unit: str = "ppm"
     intensity_exponent: float = 1.0
     similarities: tuple[str, ...] = ("cosine", "reverse_cosine")
-    entropy: dict = field(default_factory=lambda: {"clean_spectra": True, "noise_threshold": 0.01})
     precursor_peak_removal: dict = field(default_factory=lambda: dict(_DEFAULT_PRECURSOR_REMOVAL))
     threads: int = 0
     adduct_features: tuple[str, ...] = ()
@@ -110,7 +111,6 @@ class GlacierConfig:
             "ms2_tolerance_unit": self.ms2_tolerance_unit,
             "intensity_exponent": self.intensity_exponent,
             "similarities": list(self.similarities),
-            "entropy": dict(self.entropy),
             "precursor_peak_removal": dict(self.precursor_peak_removal),
             "threads": self.threads,
             "adduct_features": list(self.adduct_features),
@@ -197,6 +197,10 @@ def config_from_dict(settings: dict, source: str = "") -> GlacierConfig:
     settings["adduct_aliases"] = {str(k): str(v) for k, v in (settings.get("adduct_aliases") or {}).items()}
     basis = settings.get("formula_basis") or {"default": "auto"}
     settings["formula_basis"] = {"default": basis} if isinstance(basis, str) else dict(basis)
+    if "entropy" in settings:   # MSEntropy cleaning options of older settings files
+        settings.pop("entropy")
+        logging.getLogger(__name__).warning(
+            "glacier.entropy is ignored: entropy is calculated by msentity-similarity, without peak cleaning")
     known = set(GlacierConfig.__dataclass_fields__)
     unknown = set(settings) - known
     if unknown:

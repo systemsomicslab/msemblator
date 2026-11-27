@@ -12,7 +12,7 @@ from msemblator.runners.msfinder_struc_cmd import run_msfinder, process_folder
 from msemblator.formats.msp_to_ms import convert_msp_file_to_ms
 from msemblator.runners.sirius_struc_cmd import run_sirius_struc
 from msemblator.summaries.creating_struc_summary import struc_summary
-from msemblator.summaries.glacier_struc_summary import run_glacier_structure
+from msemblator.summaries.glacier_struc_summary import run_glacier_structure, write_glacier_spectra
 from msemblator.chemistry.converting_data_type import modify_msfinder_config_in_place
 from msemblator.utils.struc_utility import clear_folder, clear_folder_except, save_file, generate_unique_filename
 from msemblator.scoring.struc_score_normalization import ClippingTransformer
@@ -140,12 +140,12 @@ def structure_elucidation(input_msp, summary_output_dir, name_df, selection=None
         logging.info(f"MSFinder processing time: {msfinder_end_time - msfinder_start_time:.2f} seconds")
     
     # GLACIER Processing (formula + adduct candidates from the GLACIER predicted libraries)
-    glacier_features, glacier_rank_column = None, None
+    glacier_features, glacier_rank_column, glacier_spectra = None, None, None
     if selection.uses("glacier"):
         glacier_start_time = time.time()
         print("GLACIER processing start")
         try:
-            glacier_features, glacier_rank_column = run_glacier_structure(input_msp, glacier_outputdir)
+            glacier_features, glacier_rank_column, glacier_spectra = run_glacier_structure(input_msp, glacier_outputdir)
         except Exception as e:
             logging.error(f"GLACIER processing failed: {e}")
             failed_steps.append("GLACIER")
@@ -173,6 +173,9 @@ def structure_elucidation(input_msp, summary_output_dir, name_df, selection=None
         result_score_df.to_csv(os.path.join(summary_output_dir, result_score_file), index=False)
         summary_smiles_df.to_csv(os.path.join(summary_output_dir, summary_smiles_file), index=False)
         logging.info(f"Summary saved as: {result_score_file} and {summary_smiles_file}")
+        if glacier_spectra is not None and not glacier_spectra.empty:
+            spectra_file = write_glacier_spectra(glacier_spectra, name_df, summary_output_dir)
+            logging.info(f"GLACIER predicted spectra saved as: {spectra_file}")
     except Exception as e:
         # Without a summary there is no structure result, so stop here.
         logging.error(f"Summary generation failed: {e}")

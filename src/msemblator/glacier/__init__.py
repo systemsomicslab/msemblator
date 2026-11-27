@@ -8,7 +8,7 @@ in structure annotation: MetFrag + GLACIER + MS-FINDER).
     queries.py     measured spectra from the MSP (no answer fields)
     preprocessing.py  precursor peak removal (on by default for measured spectra)
     library.py    predicted libraries: file lookup, loading, checks, formula index
-    similarity.py  cosine / reverse cosine (msentity-similarity), entropy (ms_entropy)
+    similarity.py  cosine, reverse cosine, spectral entropy (msentity-similarity)
     features.py    CE and Short InChIKey aggregation, Max / Rank / ScoreDiff features
     pipeline.py    run_glacier(): the whole flow, shared by training and inference
     labels.py      answers and the TF label (training only)

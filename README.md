@@ -97,46 +97,60 @@ git clone https://github.com/systemsomicslab/msemblator.git
 cd msemblator
 ```
 
-Creating an isolated Python environment is recommended:
+MS-Emblator runs in one environment that holds everything: MS-Emblator,
+msbuddy, FIDDLE (CPU PyTorch) and the GLACIER packages. The launchers create and
+maintain it:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\msemblator_gui.cmd                 # the GUI (or double-click the file)
+.\msemblator.cmd --help              # the command line
 ```
 
-Install MS-Emblator and its Python dependencies:
+The environment is made in one of two ways:
+
+| | conda (recommended) | Python venv (no conda) |
+| --- | --- | --- |
+| Needs | [Miniconda](https://docs.conda.io/projects/miniconda/) or Anaconda | [Python 3.12](https://www.python.org/downloads/) (3.10 and 3.11 also work; 3.13 does not), and Java 21 or newer for MetFrag (e.g. [Adoptium](https://adoptium.net/)) |
+| Used when | conda is installed | conda is not installed, or `MSEMBLATOR_USE_VENV=1` is set |
+| Environment | conda environment `msemblator` from `environment.yml` (includes Java 21) | `.venv` in the repository, with `pip install -e . -r requirements-extras.txt` |
+
+- The first start creates the environment (about 10 minutes, 2–3 GB) and
+  downloads the FIDDLE weights.
+- Later starts check `environment.yml`, `requirements.txt`,
+  `requirements-extras.txt`, `envs/glacier/requirements-glacier.txt` and
+  `pyproject.toml`; when one of them changed (e.g. after `git pull`), the
+  environment is updated first. Close other MS-Emblator windows before that.
+- The launchers run MS-Emblator inside the environment, without `PYTHONPATH`
+  or user site-packages from other programs.
+- `MSEMBLATOR_ENV_NAME` (conda) or `MSEMBLATOR_VENV_DIR` (venv) selects another
+  environment.
+
+By hand, the same environment is, with conda:
 
 ```powershell
-python -m pip install --upgrade pip
-pip install -e .
-```
-
-Alternatively, with conda, `environment.yml` creates an environment that also
-includes Java 21 (no separate Java installation needed) and installs MS-Emblator
-in editable mode:
-
-```powershell
-conda env create -f environment.yml
+conda env create -f environment.yml          # or: conda env update -f environment.yml
 conda activate msemblator
+python -m msfiddle download                  # FIDDLE weights, once
+msemblator --help
 ```
 
-After changing `requirements.txt`, run `conda env update -f environment.yml --prune`.
-
-Confirm that the command is available:
+or without conda:
 
 ```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e . -r requirements-extras.txt
+python -m msfiddle download                  # FIDDLE weights, once
 msemblator --help
 ```
 
 `-h` is a short form of `--help`. The help lists the modes, every argument, the
 SIRIUS login requirement, and example commands.
 
-If you do not want to install the command, the repository also provides a
-Windows launcher:
-
-```powershell
-.\msemblator.cmd --help
-```
+The environment installs MS-Emblator in editable mode from this folder, so keep
+the repository where it is. After moving it, delete the environment
+(`conda env remove -n msemblator`, or the `.venv` folder) and start a launcher
+again.
 
 ## Runtime assets
 
@@ -300,6 +314,74 @@ The same arguments can be passed to the bundled launcher:
 .\msemblator.cmd --input .\data\example.msp --output .\results --mode 1
 ```
 
+### GUI (prototype)
+
+A desktop window runs the same analysis without typing commands:
+
+```powershell
+.\msemblator_gui.cmd          # inside the activated environment also: python -m msemblator.gui
+```
+
+- **Left:** the spectra of the opened MSP, with the MS/MS spectrum of the
+  selected one below.
+- **Analysis tab:** choose the files, the mode and the formula / structure tools
+  (each combination is marked *Ready* or *Not ready*; click the mark to see what
+  is missing), then **Run analysis**. The log shows the progress; **Stop** ends
+  the run and the tools it started.
+- **Results tab:** the ranked formula and structure candidates of the selected
+  spectrum, with the tools that support each one, and a drawing of the selected
+  structure. When GLACIER was used, a mirror plot compares the measured spectrum
+  with the GLACIER prediction of the candidate (10 or 40 eV; peaks matched
+  within 20 ppm are coloured). **File > Load results…** opens the CSV files of
+  an earlier run.
+- **Drag and drop:** drop an `.msp` file on the window to open it, or a folder
+  to use it as the output folder (a folder with results opens them).
+- The last input file, output folder, mode, tools, SIRIUS user and window size
+  are remembered, and **File > Recent MSP files** lists recent inputs. They are
+  kept in `%APPDATA%\MS-Emblator\gui_settings.json`; the password is never saved.
+- **Settings > Analysis parameters** edits `config/msemblator_parameter_file.yaml`
+  (comments in the file are kept); **Settings > Tool setup** lists every tool
+  combination and the files it still needs.
+- **Downloads** (toolbar, or Settings > Download tools, models and libraries)
+  installs SIRIUS, MS-FINDER and MetFrag from their official releases, and the
+  models and compound libraries from the MS-Emblator Zenodo record. The license
+  and terms of each item are shown first and must be accepted. See
+  [Downloading the runtime assets](#downloading-the-runtime-assets).
+- **Set up FIDDLE** (Downloads tab, or Settings > Set up FIDDLE) checks FIDDLE
+  in the MS-Emblator environment: it installs msfiddle and CPU PyTorch into an
+  environment created before they were part of `environment.yml`, and
+  downloads the FIDDLE weights if they are missing. The launchers do the same
+  at start. Without the GUI: `python -m msemblator.fiddle_setup --run`.
+
+The window starts the `msemblator` command line in the background, so the
+results are the same. **Analysis > Show command line** shows the equivalent
+command. The SIRIUS password is passed through the environment, not on the
+command line.
+
+### Downloading the runtime assets
+
+The download addresses are in `config/downloads.yaml`; edit that file to
+change them. A new Zenodo version needs only `zenodo_record` (and
+`zenodo_file` / `zenodo_root` if the archive was renamed); installed models and
+libraries then show *update available*. Items without an address yet (FIDDLE
+and GLACIER models, GLACIER libraries) are listed as *not published*.
+
+```powershell
+python -m msemblator.downloads --list                        # what is installed
+python -m msemblator.downloads --install sirius models_formula
+```
+
+- Models and libraries are read directly out of the Zenodo archive with HTTP
+  range requests, so updating the models does not download the whole 2.4 GB
+  archive.
+- Files are checked before they replace anything: with the SHA-256 in the
+  manifest (given for SIRIUS), the MD5 that Zenodo publishes, or the zip CRC-32.
+  Archive entries can only be written inside their destination folder.
+- What was installed, and from which address, is recorded in
+  `external/downloads_installed.json`.
+- The official MetFrag 2.5.0 release jar is a later build than the jar used to
+  validate MS-Emblator (see the note in `config/downloads.yaml`).
+
 ### Selecting annotation tools
 
 `--formula_tools` and `--structure_tools` choose the tools. Give a combination
@@ -341,11 +423,23 @@ How it works:
   from `models/formula/` or `models/structure/`.
 - The ranking model's own feature list is used. A model that needs features of
   a tool that is not selected is refused.
-- FIDDLE runs in its own conda environment (`envs/fiddle`, see
-  `README_sirius_free.md`), set under `formula_prediction.fiddle` in
-  `config/msemblator_parameter_file.yaml`. It needs
-  `pipeline_fiddle_score.pkl` and `pipeline_fiddle_score_diff.pkl`.
-- GLACIER needs the packages in `envs/glacier/requirements-glacier.txt` and the
+- FIDDLE runs in the MS-Emblator environment (msfiddle and CPU PyTorch come
+  from `requirements-extras.txt`). Its weights are downloaded once to
+  `%USERPROFILE%\.msfiddle`. It needs `pipeline_fiddle_score.pkl` and
+  `pipeline_fiddle_score_diff.pkl`. To run it in another environment instead,
+  set `formula_prediction.fiddle.conda_env` or `.python` in
+  `config/msemblator_parameter_file.yaml`.
+- FIDDLE needs a collision energy for each spectrum. The order of priority is:
+  1. `--fiddle_ce <eV>` on the command line: that energy for every spectrum;
+  2. `override_collision_energy: true` in `formula_prediction.fiddle` (in the
+     GUI: Settings > Analysis parameters > FIDDLE, *Use this energy for every
+     spectrum*): `default_collision_energy` for every spectrum;
+  3. otherwise the collision energy of the MSP record, and
+     `default_collision_energy` (30 eV) for records without one (`null`: such
+     spectra are skipped by FIDDLE).
+
+  Energies taken from the settings are noted in FIDDLE's status file.
+- GLACIER needs its packages (also in `requirements-extras.txt`) and the
   predicted spectral libraries in `external/glacier/` (see `README_glacier.md`).
   Its features are given to the ranking model as raw values. Spectra whose
   adduct has no GLACIER library are ranked from the other tools.
@@ -363,6 +457,7 @@ file in the same format.
 | `--mode` | Yes | `1`: formula, `2`: formula and structure, `3`: structure |
 | `--formula_tools` | No | Formula tools: `sirius` (default), `fiddle`, `all`, or a list such as `msfinder,msbuddy,fiddle` |
 | `--structure_tools` | No | Structure tools: `sirius` (default), `glacier`, `all`, or a list such as `msfinder,glacier,metfrag` |
+| `--fiddle_ce` | No | FIDDLE collision energy (eV) for every spectrum; takes priority over the MSP and the parameter file |
 | `--toolsets` | No | Tool combination file (default `config/toolsets.yaml`) |
 | `--list_tools` | No | Show the tool combinations and the files each one still needs, then exit |
 | `--sirius_user` | No | SIRIUS account email or username. Defaults to `SIRIUS_USER`; without either, the login stored by `sirius.exe login` is used |

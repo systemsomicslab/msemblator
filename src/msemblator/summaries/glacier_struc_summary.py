@@ -30,19 +30,51 @@ def glacier_rank_column(config) -> str:
 def run_glacier_structure(input_msp, output_dir):
     """Run GLACIER on the formula-fixed MSP and keep its outputs in output_dir.
 
-    Returns (features, rank_column). Queries whose adduct has no GLACIER library
-    are only reported in glacier_query_status.csv.
+    Returns (features, rank_column, mirror_spectra). Queries whose adduct has no
+    GLACIER library are only reported in glacier_query_status.csv.
     """
     from msemblator.glacier import load_config, run_glacier
 
     config = load_config()
-    result = run_glacier(input_msp, config)
+    result = run_glacier(input_msp, config, collect_spectra=True)
     os.makedirs(output_dir, exist_ok=True)
     result.features.to_csv(os.path.join(output_dir, "glacier_features.csv"), index=False, encoding="utf-8-sig")
     result.queries.to_csv(os.path.join(output_dir, "glacier_query_status.csv"), index=False, encoding="utf-8-sig")
     status = result.queries["status"].value_counts().to_dict()
     print(f"GLACIER query status: {status}")
-    return result.features, glacier_rank_column(config)
+    rank_column = glacier_rank_column(config)
+    return result.features, rank_column, mirror_spectra(result, rank_column)
+
+
+MIRROR_COLUMNS = ["filename", "adduct", "Short_InChIKey", "SMILES", "collision_energy"]
+MIRROR_TOP = 100   # GLACIER candidates per spectrum whose predicted spectra are kept
+
+
+def mirror_spectra(result, rank_column, top=MIRROR_TOP):
+    """Predicted spectra of the GLACIER candidates (up to `top` per spectrum by rank_column),
+    with the similarity of each, for the mirror plots of the GUI."""
+    methods = [m for m in result.config.similarities if m in result.raw.columns]
+    if result.spectra is None or result.raw.empty or result.features.empty:
+        return pd.DataFrame(columns=MIRROR_COLUMNS + methods + ["mz", "intensity"])
+    ranks = result.features[["query_index", "Short_InChIKey", rank_column]]
+    raw = result.raw[["query_index", "candidate_spec_id"] + MIRROR_COLUMNS + methods]
+    keep = raw.merge(ranks, on=["query_index", "Short_InChIKey"], how="inner")
+    keep = keep[(keep[rank_column] <= top).fillna(False).astype(bool)]
+    keep = keep.merge(result.spectra, on=["adduct", "candidate_spec_id"], how="inner")
+    return keep[MIRROR_COLUMNS + methods + ["mz", "intensity"]].reset_index(drop=True)
+
+
+def write_glacier_spectra(spectra, name_df, output_dir):
+    """glacier_spectra.csv.gz (or _1, _2, ...) in output_dir, with the input MSP names."""
+    names = dict(zip(name_df["Updated_NAME"].astype(str), name_df["Original_NAME"].astype(str)))
+    table = spectra.copy()
+    table["filename"] = table["filename"].astype(str).map(names).fillna(table["filename"])
+    counter, name = 0, "glacier_spectra.csv.gz"
+    while os.path.exists(os.path.join(output_dir, name)):
+        counter += 1
+        name = f"glacier_spectra_{counter}.csv.gz"
+    table.to_csv(os.path.join(output_dir, name), index=False, compression="gzip")
+    return name
 
 
 def glacier_summary_smiles(features, rank_column, summary_smiles_df):

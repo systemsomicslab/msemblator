@@ -1,8 +1,13 @@
-# Conda environment for MS-Emblator development
-#   Create : conda env create -f environment.yml
-#   Update : conda env update -f environment.yml --prune
-#   Use    : conda activate msemblator
-# Python packages are pinned in requirements.txt (installed via `pip install -e .`).
+# The MS-Emblator environment: everything runs in this one environment
+# (MS-Emblator, msbuddy, MetFrag's Java, FIDDLE with CPU PyTorch, GLACIER).
+#
+#   Easiest : double-click msemblator_gui.cmd (or run msemblator.cmd); the first start
+#             creates this environment, later starts update it when this file changes.
+#   By hand : conda env create -f environment.yml
+#             conda env update -f environment.yml      (after a change)
+#             conda activate msemblator
+# Python packages are pinned in requirements.txt (installed via `pip install -e .`)
+# and requirements-extras.txt (FIDDLE, GLACIER).
 name: msemblator
 channels:
   - conda-forge
@@ -13,6 +18,7 @@ dependencies:
   - setuptools<81  # wexpect imports pkg_resources (removed in setuptools 81)
   - pip:
       - -e .
+      - -r requirements-extras.txt
 variables:
   # Ignore packages in the user site-packages (%APPDATA%\Python) so the env stays isolated
   PYTHONNOUSERSITE: "1"

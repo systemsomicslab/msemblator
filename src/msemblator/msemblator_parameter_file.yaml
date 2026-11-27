@@ -16,16 +16,22 @@ formula_prediction:
     halogen: True #True or False
 
   fiddle:
-    # Used when FIDDLE is selected (--formula_tools fiddle or all). FIDDLE runs in
-    # its own environment (envs/fiddle) unless msfiddle is installed here.
-    conda_env: msemblator-fiddle
-    python: null   # or the FIDDLE environment's python.exe; use single quotes for Windows paths
+    # Used when FIDDLE is selected (--formula_tools fiddle or all). FIDDLE runs in the
+    # MS-Emblator environment (environment.yml installs it). Only to run it in another
+    # environment instead, give that environment's name or python.exe (single quotes).
+    conda_env: null
+    python: null
     device: cpu
     batch_size: 32
     chunk_size: 512
     top_k: 100
-    # Spectra without COLLISION_ENERGY are not sent to FIDDLE. Spectra whose instrument
-    # is not recognised use this model (qtof, orbitrap or timstof); null skips them.
+    # Collision energy (eV) for spectra whose MSP record has none; null skips them.
+    default_collision_energy: 30
+    # true: use default_collision_energy for every spectrum, also when the MSP has one.
+    # (msemblator --fiddle_ce <eV> does this for one run and takes priority over both.)
+    override_collision_energy: false
+    # Spectra whose instrument is not recognised use this model (qtof, orbitrap or
+    # timstof); null skips them.
     default_instrument: qtof
 
   msemblator_output_records: 100

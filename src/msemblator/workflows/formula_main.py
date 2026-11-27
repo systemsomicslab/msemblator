@@ -35,11 +35,13 @@ def adduct_mgf_path(mgf_folder, adduct):
     return path
 
 
-def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_steps=None, selection=None):
+def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_steps=None, selection=None,
+                        fiddle_overrides=None):
     """Run formula elucidation with the selected tools (a toolsets.ToolSelection).
 
     Without a selection the default combination of config/toolsets.yaml is used.
-    Names of failed tools are appended to failed_steps.
+    fiddle_overrides replace formula_prediction.fiddle settings for this run (e.g. the
+    collision energy given with --fiddle_ce). Names of failed tools are appended to failed_steps.
     """
     selection = selection or toolsets.resolve_selection(toolsets.FORMULA)
     print(f"Running formula elucidation: {selection.describe()}")
@@ -159,8 +161,15 @@ def formula_elucidation(input_msp_path, summary_output_dir, name_df, failed_step
     # 7. Run FIDDLE processing (in its own environment when msfiddle is not installed here).
     if selection.uses("fiddle"):
         print("FIDDLE processing start")
+        fiddle_settings = {**(config['formula_prediction'].get('fiddle') or {}), **(fiddle_overrides or {})}
+        energy = fiddle_settings.get("default_collision_energy")
+        if energy is not None and fiddle_settings.get("override_collision_energy"):
+            print(f"FIDDLE collision energy: {energy:g} eV for every spectrum" if isinstance(energy, (int, float))
+                  else f"FIDDLE collision energy: {energy} for every spectrum")
+        elif energy is not None:
+            print(f"FIDDLE collision energy: from the MSP; {energy} eV where the MSP has none")
         try:
-            run_fiddle(input_msp_path, fiddle_run_dir, config['formula_prediction'].get('fiddle'))
+            run_fiddle(input_msp_path, fiddle_run_dir, fiddle_settings)
         except Exception as e:
             logging.error(f"FIDDLE processing failed: {e}")
             failed_steps.append("FIDDLE")

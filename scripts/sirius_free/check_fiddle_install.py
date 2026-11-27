@@ -2,7 +2,7 @@
 """Check that a FIDDLE environment reproduces the reference output.
 
 Run inside the FIDDLE environment after `msfiddle download`:
-    conda run -n msemblator-fiddle python scripts/sirius_free/check_fiddle_install.py
+    python scripts/sirius_free/check_fiddle_install.py      (MS-Emblator environment)
 
 Checks:
   1. msfiddle version and SHA-256 of the downloaded checkpoints;

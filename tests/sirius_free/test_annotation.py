@@ -86,6 +86,7 @@ class InstrumentRuleTest(unittest.TestCase):
 class _FakePredictor:
     """Stands in for msfiddle.MsFiddlePredictor; records what it receives."""
     seen = []
+    energies = {}
 
     def __init__(self, *, instrument_type, device, batch_size):
         self.instrument_type = instrument_type
@@ -102,6 +103,7 @@ class _FakePredictor:
         out = []
         for s in spectra:
             _FakePredictor.seen.append((s["id"], s["adduct"], self.instrument_type))
+            _FakePredictor.energies[s["id"]] = s["collision_energy"]
             candidates = [] if s["id"] == "4" else [
                 {"formula": "C7H10O5", "score": 0.9, "mass": 174.05, "metadata": {"raw_rescore": 0.9}},
                 {"formula": "C6H10N2O4", "score": 0.1, "mass": 174.06, "metadata": {"raw_rescore": 0.1}},
@@ -145,6 +147,46 @@ class FiddleRunnerTest(unittest.TestCase):
         self.assertEqual(ranks, [(names["SYN_formate"], "1"), (names["SYN_formate"], "2")])
         self.assertEqual(manifest["n_spectra"], 31)
         self.assertEqual(sum(manifest["status_counts"].values()), 31)
+
+
+class FiddleCollisionEnergyTest(unittest.TestCase):
+    def test_energy_choice(self):
+        choose = fiddle_runner.collision_energy_for
+        self.assertEqual(choose("35", None), ("35", "msp"))
+        self.assertEqual(choose("", None), (None, ""))                        # policy A
+        self.assertEqual(choose("", 30), ("30", "default"))
+        self.assertEqual(choose("35", 30), ("35", "msp"))                     # the MSP value wins ...
+        self.assertEqual(choose("35", 30, override=True), ("30", "override"))  # ... unless overridden
+        self.assertEqual(choose("NCE=27% 30V", None), ("NCE=27% 30eV", "msp"))
+        self.assertEqual(choose("", 22.5), ("22.5", "default"))
+
+    def run_demo(self, **parameters):
+        _FakePredictor.seen, _FakePredictor.energies = [], {}
+        fake = types.ModuleType("msfiddle")
+        fake.MsFiddlePredictor = _FakePredictor
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(sys.modules, {"msfiddle": fake}):
+            manifest = fiddle_runner.run(DEMO_MSP, tmp, parameters)
+            status = {r["query_id"]: r for r in read_csv(Path(tmp) / "fiddle" / "fiddle_status.csv")}
+        names = {r.name: r.query_id for r in msp_io.read_msp_records(DEMO_MSP)}
+        return manifest, status, names
+
+    def test_default_energy_for_spectra_without_one(self):
+        manifest, status, names = self.run_demo(default_collision_energy=30)
+        no_ce = names["SYN_no_ce"]
+        self.assertEqual(status[no_ce]["status"], "ok")
+        self.assertIn("30 eV from the settings (none in the MSP)", status[no_ce]["message"])
+        self.assertEqual(_FakePredictor.energies[no_ce], "30")
+        formate = names["SYN_formate"]
+        self.assertNotEqual(_FakePredictor.energies[formate], "30")           # MSP value kept
+        self.assertEqual(manifest["parameters"]["collision_energy_from_settings"], {"default": 1, "override": 0})
+
+    def test_override_for_every_spectrum(self):
+        _, status, names = self.run_demo(default_collision_energy=25, override_collision_energy=True)
+        self.assertTrue(_FakePredictor.energies)
+        self.assertEqual(set(_FakePredictor.energies.values()), {"25"})
+        # the stepped energy of the MSP is replaced, so FIDDLE accepts the spectrum
+        self.assertEqual(status[names["SYN_stepped_ce"]]["status"], "ok")
+        self.assertIn("replaces the MSP value", status[names["SYN_formate"]]["message"])
 
 
 class FiddleReferenceTest(unittest.TestCase):

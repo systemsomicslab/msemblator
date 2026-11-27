@@ -12,7 +12,6 @@ every combination with its missing files.
 from __future__ import annotations
 
 import importlib.util
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -179,34 +178,29 @@ def _msfinder_executable_missing() -> list[str]:
 
 
 def _fiddle_environment_missing() -> list[str]:
-    """msfiddle installed here, or the FIDDLE environment of formula_prediction.fiddle."""
-    if importlib.util.find_spec("msfiddle") is not None:
-        return []
-    try:
-        with open(paths.PARAMETER_FILE, encoding="utf-8") as handle:
-            settings = (yaml.safe_load(handle) or {}).get("formula_prediction", {}).get("fiddle") or {}
-    except OSError:
-        settings = {}
-    if settings.get("python"):
-        python = Path(settings["python"])
-        return [] if python.is_file() else [f"{python} (formula_prediction.fiddle.python)"]
-    env = settings.get("conda_env")
-    if not env:
-        return ["FIDDLE environment (set formula_prediction.fiddle.conda_env or python)"]
-    roots = [Path.home() / ".conda" / "envs"]
-    for variable in ("CONDA_EXE", "CONDA_PYTHON_EXE"):
-        if os.environ.get(variable):
-            roots.append(Path(os.environ[variable]).resolve().parents[1] / "envs")
-    if os.environ.get("CONDA_PREFIX"):
-        prefix = Path(os.environ["CONDA_PREFIX"])
-        roots += [prefix.parent, prefix / "envs"]
-    if any((root / env).is_dir() for root in roots):
-        return []
-    return [f"conda environment '{env}' for FIDDLE (envs/fiddle; or set formula_prediction.fiddle.python)"]
+    """msfiddle and PyTorch in this environment (or the configured other one) and the FIDDLE weights.
+
+    Settings > Set up FIDDLE (or python -m msemblator.fiddle_setup --run) installs what is missing.
+    """
+    from msemblator import fiddle_setup
+
+    current = fiddle_setup.status(ask_conda=False)
+    missing = []
+    if not current.environment_ready:
+        if current.where == fiddle_setup.OTHER_PYTHON:
+            missing.append(f"{current.python} (formula_prediction.fiddle.python)")
+        elif current.where == fiddle_setup.OTHER_CONDA:
+            missing.append(f"conda environment '{current.env_name}' (formula_prediction.fiddle.conda_env)")
+        else:
+            missing.append("FIDDLE packages msfiddle and torch in this environment "
+                           "(Set up FIDDLE, or pip install -r requirements-extras.txt)")
+    missing += [f"{w} (FIDDLE weights: Set up FIDDLE, or python -m msfiddle download)"
+                for w in current.weights_missing]
+    return missing
 
 
 def _glacier_missing() -> list[str]:
-    missing = [f"Python package {name} (envs/glacier/requirements-glacier.txt)"
+    missing = [f"Python package {name} (requirements-extras.txt)"
                for name in ("msentity", "msentity_similarity") if importlib.util.find_spec(name) is None]
     glacier_config = Path(paths.CONFIG_DIR) / "glacier.yaml"
     if not glacier_config.is_file():
@@ -216,8 +210,6 @@ def _glacier_missing() -> list[str]:
         config = load_config(glacier_config)
     except Exception as exc:  # invalid settings are reported, not raised
         return missing + [f"{glacier_config} ({exc})"]
-    if "entropy" in config.similarities and importlib.util.find_spec("ms_entropy") is None:
-        missing.append("Python package ms_entropy (envs/glacier/requirements-glacier.txt)")
     if not any(config.library_path(a) and config.library_path(a).is_file() for a in config.libraries):
         missing.append(f"GLACIER libraries in {config.library_dir} (none of {', '.join(config.libraries.values())})")
     return missing

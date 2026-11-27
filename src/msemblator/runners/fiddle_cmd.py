@@ -1,9 +1,9 @@
 """Run FIDDLE (msfiddle) formula prediction for the formula workflow.
 
-FIDDLE needs torch and lives in its own environment (envs/fiddle). When msfiddle
-is importable here it is called directly; otherwise
-msemblator.sirius_free.run_fiddle is started with the FIDDLE environment's
-Python (formula_prediction.fiddle.python, or conda_env via `conda run`).
+FIDDLE runs in the MS-Emblator environment (requirements-extras.txt installs
+msfiddle and CPU torch) and is called directly. Only when msfiddle is not
+importable here, msemblator.sirius_free.run_fiddle is started with another
+environment's Python (formula_prediction.fiddle.python, or conda_env via `conda run`).
 """
 import importlib.util
 import json
@@ -26,8 +26,8 @@ def fiddle_python(settings):
         conda = os.environ.get("CONDA_EXE") or shutil.which("conda") or "conda"
         return [conda, "run", "--no-capture-output", "-n", str(env), "python"]
     raise RuntimeError(
-        "msfiddle is not installed in this environment and neither "
-        "formula_prediction.fiddle.python nor conda_env is set"
+        "msfiddle is not installed in this environment. Start MS-Emblator with msemblator.cmd / "
+        "msemblator_gui.cmd (they update the environment), or run: python -m msemblator.fiddle_setup --run"
     )
 
 

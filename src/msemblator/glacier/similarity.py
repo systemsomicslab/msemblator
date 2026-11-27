@@ -15,9 +15,12 @@ msentity-similarity (cosine, reverse_cosine, modified_cosine, bonanza)
     peak_intensity_coverage_measured / _predicted = sum(x^2 over matched peaks) /
     sum(x^2 over all peaks) of each side: 1 - coverage is the unmatched share.
 
-ms_entropy (entropy, optional)
-    Weighted spectral entropy similarity (Li et al., 2021) with MSEntropy's own
-    spectrum cleaning (glacier.entropy). It is symmetric.
+entropy / unweighted_entropy (also msentity-similarity, from 2.1.0)
+    Spectral entropy similarity (Li et al., 2021) on the same one-to-one peak
+    pairs. Intensities are normalized to sum 1; for ``entropy`` a spectrum with
+    entropy H < 3 is reweighted (p ** (0.25 + 0.25 H), normalized again). Each
+    matched pair adds (f(p + q) - f(p) - f(q)) / 2 with f(x) = x log2 x. There is
+    no peak cleaning (no noise filter, no merging of close peaks); it is symmetric.
 
 Scores are in [0, 1]; a pair without matched peaks scores 0. A calculation that
 fails leaves NaN, so it is never mistaken for a real score of 0.
@@ -32,21 +35,15 @@ from msemblator.glacier.config import GlacierConfig
 
 logger = logging.getLogger(__name__)
 
-MSSIM_METHODS = ("cosine", "reverse_cosine", "modified_cosine", "bonanza")
+MSSIM_METHODS = ("cosine", "reverse_cosine", "modified_cosine", "bonanza", "entropy", "unweighted_entropy")
 COVERAGE_COLUMNS = ("peak_intensity_coverage_measured", "peak_intensity_coverage_predicted")
 
 
 def library_versions(config: GlacierConfig) -> dict:
-    versions = {}
     import msentity
-    versions["msentity"] = msentity.__version__
-    if any(m in MSSIM_METHODS for m in config.similarities):
-        import msentity_similarity
-        versions["msentity_similarity"] = msentity_similarity.__version__
-    if "entropy" in config.similarities:
-        import ms_entropy
-        versions["ms_entropy"] = getattr(ms_entropy, "__version__", "")
-    return versions
+    import msentity_similarity
+
+    return {"msentity": msentity.__version__, "msentity_similarity": msentity_similarity.__version__}
 
 
 class SimilarityCalculator:
@@ -54,18 +51,14 @@ class SimilarityCalculator:
         self.config = config
         self.methods = tuple(config.similarities)
         self.mssim_methods = [m for m in MSSIM_METHODS if m in self.methods]
-        self.use_entropy = "entropy" in self.methods
-        if self.mssim_methods:
-            try:
-                import msentity_similarity  # noqa: F401
-            except ImportError as exc:
-                raise ImportError("msentity-similarity is required; see envs/glacier/requirements-glacier.txt") from exc
-        if self.use_entropy:
-            try:
-                import ms_entropy  # noqa: F401
-            except ImportError as exc:
-                raise ImportError("The entropy similarity needs the ms_entropy package "
-                                  "(pip install ms_entropy) or remove it from glacier.similarities") from exc
+        try:
+            import msentity_similarity
+        except ImportError as exc:
+            raise ImportError("msentity-similarity is required; see envs/glacier/requirements-glacier.txt") from exc
+        entropy = [m for m in self.mssim_methods if m.endswith("entropy")]
+        if entropy and tuple(int(x) for x in msentity_similarity.__version__.split(".")[:2]) < (2, 1):
+            raise ImportError(f"{', '.join(entropy)} needs msentity-similarity 2.1 or newer "
+                              f"(installed: {msentity_similarity.__version__}); see envs/glacier/requirements-glacier.txt")
 
     def score(self, query_dataset, query_peaks, candidates) -> dict:
         """Scores of every (query, candidate) pair, query-major: row k = (k // n_c, k % n_c).
@@ -78,16 +71,10 @@ class SimilarityCalculator:
         for column in COVERAGE_COLUMNS:
             result[column] = np.full(n_q * n_c, np.nan)
         errors = []
-        if self.mssim_methods:
-            try:
-                self._mssim(query_dataset, candidates, n_c, result)
-            except Exception as exc:  # noqa: BLE001 - recorded as a failed calculation
-                errors.append(f"msentity-similarity: {exc}")
-        if self.use_entropy:
-            try:
-                self._entropy(query_peaks, candidates, n_c, result)
-            except Exception as exc:  # noqa: BLE001
-                errors.append(f"ms_entropy: {exc}")
+        try:
+            self._mssim(query_dataset, candidates, n_c, result)
+        except Exception as exc:  # noqa: BLE001 - recorded as a failed calculation
+            errors.append(f"msentity-similarity: {exc}")
         result["error"] = "; ".join(errors)
         return result
 
@@ -107,29 +94,3 @@ class SimilarityCalculator:
             result[method][flat] = np.array(hits[method], dtype=float)  # None (missing) -> nan
         for ours, theirs in zip(COVERAGE_COLUMNS, ("peak_intensity_coverage1", "peak_intensity_coverage2")):
             result[ours][flat] = np.array(hits[theirs], dtype=float)
-
-    def _entropy(self, query_peaks, candidates, n_c, result):
-        from ms_entropy import calculate_entropy_similarity
-
-        options = self.config.entropy
-        if self.config.ms2_tolerance_unit == "ppm":
-            tolerance = {"ms2_tolerance_in_da": -1, "ms2_tolerance_in_ppm": self.config.ms2_tolerance}
-        else:
-            tolerance = {"ms2_tolerance_in_da": self.config.ms2_tolerance, "ms2_tolerance_in_ppm": -1}
-        reference = []
-        for i in range(n_c):
-            mz, intensity = candidates.spectrum(i)
-            reference.append(np.column_stack([mz, intensity]).astype(np.float32))
-        scores = result["entropy"]
-        for q, peaks in enumerate(query_peaks):
-            measured = np.asarray(peaks, dtype=np.float32).reshape(-1, 2)
-            for c in range(n_c):
-                if not len(measured) or not len(reference[c]):
-                    scores[q * n_c + c] = 0.0  # an empty spectrum matches nothing (as in msentity-similarity)
-                    continue
-                try:
-                    scores[q * n_c + c] = calculate_entropy_similarity(
-                        measured, reference[c], clean_spectra=bool(options.get("clean_spectra", True)),
-                        noise_threshold=float(options.get("noise_threshold", 0.01)), **tolerance)
-                except Exception as exc:  # noqa: BLE001 - one failed pair stays NaN
-                    logger.debug("entropy failed for pair (%d, %d): %s", q, c, exc)

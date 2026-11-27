@@ -53,9 +53,12 @@ glacier:
   ms2_tolerance_unit: ppm        # ppm or Da
   intensity_exponent: 1.0        # 1.0 = intensities are used as they are
 
-  # Similarities to calculate (each one adds 5 features):
-  #   cosine, reverse_cosine, modified_cosine, bonanza  (msentity-similarity)
-  #   entropy  weighted spectral entropy (ms_entropy package, optional)
+  # Similarities to calculate (each one adds 5 features), all by msentity-similarity:
+  #   cosine, reverse_cosine, modified_cosine, bonanza
+  #   entropy             weighted spectral entropy similarity
+  #   unweighted_entropy  spectral entropy similarity without the low-entropy reweighting
+  # The entropy methods use the same peak pairs as cosine (ms2_tolerance, one to one,
+  # closest first) and do not clean the spectra (no noise filter, no peak merging).
   similarities: [cosine, reverse_cosine, entropy]
 
   # Removal of the precursor peak before scoring. On by default for the measured
@@ -74,13 +77,6 @@ glacier:
     tolerance: 20
     tolerance_unit: ppm          # ppm or Da
     spectra: measured            # measured or both
-
-  # Options of the entropy similarity (MSEntropy defaults). MSEntropy cleans
-  # both spectra before scoring: peaks below noise_threshold x base peak are
-  # removed and peaks closer than 2 x tolerance are merged.
-  entropy:
-    clean_spectra: true
-    noise_threshold: 0.01
 
   # Threads used by msentity-similarity within one call (0 = its default; it
   # starts several threads from 2048 spectrum pairs). Formula groups are scored

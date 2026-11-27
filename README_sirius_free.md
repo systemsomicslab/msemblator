@@ -13,34 +13,41 @@ ranking model trained for the combination in
 `pipeline_fiddle_score(_diff).pkl` from `fit_fiddle_normalization.py`. The
 default combination (SIRIUS, MS-FINDER, msbuddy, `models/formula`) is unchanged.
 
-## Environments
+## Environment
 
-Two environments are used:
+Everything runs in the one MS-Emblator environment, `msemblator` (Python 3.12):
+MSBuddy, MS-FINDER, the scripts and FIDDLE (msfiddle 2.3.0, CPU torch). The
+FIDDLE packages are in `requirements-extras.txt`, which `environment.yml`
+installs.
 
-| Environment | Python | Used for | Defined in |
-| --- | --- | --- | --- |
-| `msemblator` | 3.12 (≥3.10) | MSBuddy, MS-FINDER, running the script | `environment.yml`, `requirements.txt` |
-| `msemblator-fiddle` | 3.11 | FIDDLE (msfiddle 2.3.0, CPU torch) | `envs/fiddle/environment.yml`, `envs/fiddle/requirements-fiddle.txt` |
-
-FIDDLE has its own environment because it needs torch and newer
-pandas/scikit-learn than the main environment.
+FIDDLE used to have its own environment (Python 3.11, newer pandas and
+scikit-learn). msfiddle only needs pandas ≥ 2.0, scikit-learn ≥ 1.0 and
+numpy < 2, so it was checked together with the pinned MS-Emblator packages
+(2026-11-27): no package changed version, `pip check` was clean, and FIDDLE
+reproduced `envs/fiddle/reference` exactly.
 
 ### Setting up on a new machine (PowerShell)
 
+`msemblator_gui.cmd` or `msemblator.cmd` creates the environment and downloads
+the FIDDLE weights at the first start (see "Installation" in `README.md`). By
+hand:
+
 ```powershell
-# 1. Main environment (skip if it already exists)
+# 1. The environment (or `conda env update -f environment.yml` for an older one)
 conda env create -f environment.yml
+conda activate msemblator
 
-# 2. FIDDLE environment
-conda env create -f envs/fiddle/environment.yml
+# 2. Download the FIDDLE weights (~0.25 GB, saved to %USERPROFILE%\.msfiddle\check_point\v2.3.0)
+python -m msfiddle download
 
-# 3. Download the FIDDLE weights (~0.3 GB, saved to %USERPROFILE%\.msfiddle\check_point\v2.3.0)
-conda run -n msemblator-fiddle msfiddle download
-
-# 4. Check that FIDDLE reproduces the reference output
-conda run -n msemblator-fiddle python scripts/sirius_free/check_fiddle_install.py
+# 3. Check that FIDDLE reproduces the reference output
+python scripts/sirius_free/check_fiddle_install.py
 #    -> "OK: FIDDLE output is identical to the reference."
 ```
+
+`python -m msemblator.fiddle_setup --run`, or **Set up FIDDLE** in the GUI,
+installs msfiddle and torch into an environment created before they were part
+of `environment.yml`, and downloads missing weights.
 
 MS-FINDER uses the same files as the default workflow:
 `external/msfinder/MSFINDER*/MsfinderConsoleApp.exe` and
@@ -84,14 +91,9 @@ python scripts/sirius_free/run_formula_annotation.py --input <data.msp> --output
 
 - `--tools msbuddy msfinder fiddle` selects tools. The default comes from
   `annotation.tools` in `config/sirius_free_formula.yaml`.
-- FIDDLE is started automatically in `msemblator-fiddle`, through `conda run`.
-  If conda is not on `PATH`, set `annotation.fiddle.python` to the
-  environment's `python.exe`.
-- To run only FIDDLE, use the FIDDLE environment directly:
-
-  ```powershell
-  conda run -n msemblator-fiddle python scripts/sirius_free/run_formula_annotation.py --input <data.msp> --output <out_dir> --tools fiddle
-  ```
+- FIDDLE runs in the same process. To run it in another environment instead,
+  set `annotation.fiddle.conda_env` or `annotation.fiddle.python` in
+  `config/sirius_free_formula.yaml`.
 
 - Each tool writes its own sub-folder, so the tools can be run at different
   times or on different machines into the same `<out_dir>`.
@@ -109,8 +111,12 @@ reduced MSP of the default workflow, which drops the collision energy.
 | `Instrument_type` / `Instrument` | – | – | required to choose the model (Q-TOF → `qtof`, HCD / Orbitrap / FT → `orbitrap`, timsTOF → `timstof`) |
 | peaks | – | – | at least 5 peaks within m/z 50–1500 |
 
-- Spectra without a collision energy are not sent to FIDDLE. No default
-  energy is substituted; this is option A.
+- Spectra without a collision energy are not sent to FIDDLE here: no default
+  energy is substituted (option A, `annotation.fiddle.default_collision_energy:
+  null` in `config/sirius_free_formula.yaml`), so the training data only
+  contain measured energies. Set a value there to substitute it, and
+  `override_collision_energy: true` to use it for every spectrum. MS-Emblator's
+  own workflow uses 30 eV for spectra without one (see `README.md`).
 - For NIST26, use the original `NIST26_ML_data.msp`, which has
   `Collision_energy` and `Instrument_type`. `NIST26_id_ML.msp` does not have
   them.

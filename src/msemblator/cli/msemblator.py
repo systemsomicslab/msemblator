@@ -91,6 +91,10 @@ def main():
                         help="Formula tools: sirius (default), fiddle, all, or a list such as msfinder,msbuddy,fiddle")
     parser.add_argument("--structure_tools", metavar="TOOLS",
                         help="Structure tools: sirius (default), glacier, all, or a list such as msfinder,glacier,metfrag")
+    parser.add_argument("--fiddle_ce", type=float, metavar="EV",
+                        help="FIDDLE collision energy in eV for every spectrum. Takes priority over the MSP value "
+                             "and over default_collision_energy in the parameter file (which is used only for "
+                             "spectra without one)")
     parser.add_argument("--toolsets", metavar="YAML",
                         help="Tool combinations and their model folders (default: config/toolsets.yaml)")
     parser.add_argument("--list_tools", action="store_true",
@@ -114,6 +118,15 @@ def main():
     except ValueError as e:
         print(f"\nError: {e}")
         return 2
+    formula_options = {}
+    if args.fiddle_ce is not None:
+        if not (args.fiddle_ce > 0 and args.fiddle_ce < 1000):
+            parser.error("--fiddle_ce must be a collision energy in eV, greater than 0")
+        if args.mode in (1, 2) and formula_tools.uses("fiddle"):
+            formula_options = {"fiddle_overrides": {"default_collision_energy": args.fiddle_ce,
+                                                    "override_collision_energy": True}}
+        else:
+            print("Note: --fiddle_ce is ignored because FIDDLE is not among the selected formula tools.")
     if args.mode in (1, 2):
         print(f"Formula tools:   {formula_tools.describe()}")
     if args.mode in (2, 3):
@@ -164,12 +177,14 @@ def main():
     structure_failed_steps = []
     if args.mode == 1:
         print("\nRunning formula elucidation only...")
-        formula_summary = formula_elucidation(converted_msp_path, output_dir, name_df, formula_failed_steps, formula_tools)
+        formula_summary = formula_elucidation(converted_msp_path, output_dir, name_df, formula_failed_steps, formula_tools,
+                                              **formula_options)
 
     elif args.mode in (2, 3):
         if args.mode == 2:
             print("\nRunning both formula and structure elucidation...")
-            formula_summary = formula_elucidation(converted_msp_path, output_dir, name_df, formula_failed_steps, formula_tools)
+            formula_summary = formula_elucidation(converted_msp_path, output_dir, name_df, formula_failed_steps, formula_tools,
+                                              **formula_options)
             msp_formula_changer(converted_msp_path, formula_summary, formula_fixed_msp_path)
             structure_failed_steps = structure_elucidation(formula_fixed_msp_path, output_dir, name_df, structure_tools)
         else:

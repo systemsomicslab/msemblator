@@ -13,6 +13,9 @@ dynamic = ["dependencies"]
 [project.scripts]
 msemblator = "msemblator.cli.msemblator:main"
 
+[project.gui-scripts]
+msemblator-gui = "msemblator.gui.app:main"
+
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 

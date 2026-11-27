@@ -1,11 +1,15 @@
 """Run FIDDLE (msfiddle) formula prediction on an MSP file.
 
-Runs inside the separate FIDDLE environment (envs/fiddle). It needs msfiddle and
-torch, but not the rest of MS-Emblator.
+Runs in the MS-Emblator environment, or in another environment that has msfiddle
+and torch (it does not need the rest of MS-Emblator).
 
-Rules (no guessing):
-- Collision energy missing -> status missing_collision_energy; FIDDLE is not run
-  (policy A, no default energy is substituted).
+Rules:
+- Collision energy: the MSP value is used. A spectrum without one gets
+  default_collision_energy (eV) when it is set; otherwise its status is
+  missing_collision_energy and FIDDLE is not run (policy A, the default here, used
+  for training). override_collision_energy uses default_collision_energy for every
+  spectrum, also when the MSP has a value. Energies from the settings are noted in
+  the status message.
 - Adduct not supported by FIDDLE (e.g. [M+Cl]-) -> unsupported_adduct; never converted.
 - Instrument not recognised -> unknown_instrument, unless a default instrument
   is set explicitly in the configuration.
@@ -53,6 +57,8 @@ DEFAULT_PARAMETERS = {
         ["q exactive", "orbitrap"],
     ],
     "default_instrument": None,  # None: skip spectra whose instrument is unknown
+    "default_collision_energy": None,  # eV for spectra without one; None: skip them (policy A)
+    "override_collision_energy": False,  # True: default_collision_energy for every spectrum
     "top_k": 20,  # = post_processing.top_k of the released configs
     "batch_size": 32,
     "chunk_size": 512,  # spectra per predict_batch call
@@ -70,6 +76,20 @@ _NCE_VOLT = re.compile(r"^(NCE=\d+(?:\.\d+)?%\s+\d+(?:\.\d+)?)\s*V$")
 def normalize_collision_energy(text: str) -> str:
     text = text.strip()
     return _NCE_VOLT.sub(r"\1eV", text)
+
+
+def collision_energy_for(msp_value: str, default=None, override: bool = False) -> tuple[str | None, str]:
+    """(energy passed to FIDDLE, source "msp" / "default" / "override"); (None, "") when there is none."""
+    text = (msp_value or "").strip()
+    if default is not None and str(default).strip():
+        value = f"{float(default):g}" if isinstance(default, (int, float)) else normalize_collision_energy(str(default))
+        if override:
+            return value, "override"
+        if not text:
+            return value, "default"
+    if text:
+        return normalize_collision_energy(text), "msp"
+    return None, ""
 
 
 def instrument_model(record: msp_io.SpectrumRecord, rules, default=None) -> str | None:
@@ -130,12 +150,16 @@ def run(input_msp: str | Path, output_dir: str | Path, parameters: dict | None =
     status: dict[str, dict] = {}
     by_model: dict[str, list[dict]] = {}
     n_ce_rewritten = 0
+    ce_notes: dict[str, str] = {}
+    ce_from_settings = {"default": 0, "override": 0}
     for r in records:
         if r.adduct not in FIDDLE_ADDUCTS:
             status[r.query_id] = common.status_row(
                 r.query_id, TOOL, msp_io.STATUS_UNSUPPORTED_ADDUCT, message=r.precursor_type_raw)
             continue
-        if not r.collision_energy.strip():
+        energy, source = collision_energy_for(r.collision_energy, params["default_collision_energy"],
+                                              bool(params["override_collision_energy"]))
+        if energy is None:
             status[r.query_id] = common.status_row(r.query_id, TOOL, msp_io.STATUS_MISSING_CE)
             continue
         model = instrument_model(r, params["instrument_rules"], params["default_instrument"])
@@ -144,8 +168,12 @@ def run(input_msp: str | Path, output_dir: str | Path, parameters: dict | None =
                 r.query_id, TOOL, msp_io.STATUS_UNKNOWN_INSTRUMENT,
                 message=f"{r.instrument_type} {r.instrument}".strip())
             continue
-        energy = normalize_collision_energy(r.collision_energy)
-        n_ce_rewritten += energy != r.collision_energy.strip()
+        if source == "msp":
+            n_ce_rewritten += energy != r.collision_energy.strip()
+        else:
+            ce_from_settings[source] += 1
+            ce_notes[r.query_id] = (f"collision energy {energy} eV from the settings "
+                                    + ("(replaces the MSP value)" if source == "override" else "(none in the MSP)"))
         by_model.setdefault(model, []).append({
             "id": r.query_id,
             "mz_array": r.mz,
@@ -154,9 +182,11 @@ def run(input_msp: str | Path, output_dir: str | Path, parameters: dict | None =
             "adduct": FIDDLE_ADDUCTS[r.adduct],
             "collision_energy": energy,
         })
-    logger.info("FIDDLE: %d spectra to predict (%s); collision energy unit V -> eV rewritten for %d",
+    logger.info("FIDDLE: %d spectra to predict (%s); collision energy unit V -> eV rewritten for %d; "
+                "from the settings: %d without one, %d replaced",
                 sum(len(v) for v in by_model.values()),
-                ", ".join(f"{m}: {len(v)}" for m, v in by_model.items()), n_ce_rewritten)
+                ", ".join(f"{m}: {len(v)}" for m, v in by_model.items()), n_ce_rewritten,
+                ce_from_settings["default"], ce_from_settings["override"])
 
     rows: list[dict] = []
     checkpoints, timings = {}, {}
@@ -195,7 +225,8 @@ def run(input_msp: str | Path, output_dir: str | Path, parameters: dict | None =
                         "instrument_model": model,
                     })
                 state = msp_io.STATUS_OK if result else msp_io.STATUS_NO_CANDIDATE
-                status[qid] = common.status_row(qid, TOOL, state, n_candidates=len(result))
+                status[qid] = common.status_row(qid, TOOL, state, n_candidates=len(result),
+                                                message=ce_notes.get(qid, ""))
             logger.info("FIDDLE %s: %d/%d spectra predicted", model, min(start + size, len(accepted)), len(accepted))
         timings[model] = round(time.time() - t0, 1)
 
@@ -207,5 +238,6 @@ def run(input_msp: str | Path, output_dir: str | Path, parameters: dict | None =
     versions["checkpoints_sha256"] = checkpoints
     return common.write_manifest(out / "manifest.json", TOOL, input_msp,
                                  {**params, "seconds_per_model": timings,
-                                  "collision_energy_unit_rewritten": n_ce_rewritten},
+                                  "collision_energy_unit_rewritten": n_ce_rewritten,
+                                  "collision_energy_from_settings": ce_from_settings},
                                  versions, status_rows, started)

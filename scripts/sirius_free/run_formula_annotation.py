@@ -5,10 +5,10 @@ Usage (MS-Emblator environment):
     python scripts/sirius_free/run_formula_annotation.py --input data.msp --output out_dir
     python scripts/sirius_free/run_formula_annotation.py --input data.msp --output out_dir --tools msbuddy msfinder
 
-FIDDLE runs in its own environment. When msfiddle is not importable here, the
-script re-runs itself with the FIDDLE environment's Python (annotation.fiddle.python
-or annotation.fiddle.conda_env in the config). It can also be started there directly:
-    conda run -n msemblator-fiddle python scripts/sirius_free/run_formula_annotation.py --input data.msp --output out_dir --tools fiddle
+FIDDLE runs in the MS-Emblator environment (requirements-extras.txt). Only when
+msfiddle is not importable here, the script re-runs itself with another
+environment's Python (annotation.fiddle.python or annotation.fiddle.conda_env in
+the config).
 
 Outputs (out_dir):
     spectra_index.csv                   one row per spectrum (query_id = position in the MSP)

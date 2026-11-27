@@ -23,11 +23,15 @@ annotation:
     param_template: null    # null: config/msfinder/MsfinderConsoleApp_Param_formula.txt
 
   fiddle:
-    # Python of the FIDDLE environment (envs/fiddle). Used when the current
-    # interpreter does not have msfiddle installed.
-    #   conda: the environment name is enough.
-    conda_env: msemblator-fiddle
-    python: null            # or an explicit path, e.g. 'C:\Users\me\.conda\envs\msemblator-fiddle\python.exe'
+    # FIDDLE runs in the MS-Emblator environment (environment.yml installs msfiddle).
+    # Only when it is installed in another environment instead: that environment's
+    # name, or its python.exe (e.g. 'C:\Users\me\.conda\envs\fiddle\python.exe').
+    conda_env: null
+    python: null
+    # Collision energy (eV) for spectra without one; null = skip them (policy A, used
+    # for the training data). override_collision_energy: true uses it for every spectrum.
+    default_collision_energy: null
+    override_collision_energy: false
     device: cpu
     batch_size: 32
     chunk_size: 512

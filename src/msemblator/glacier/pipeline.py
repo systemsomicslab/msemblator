@@ -53,9 +53,29 @@ class GlacierResult:
     libraries: list[dict]
     config: GlacierConfig
     timings: dict = field(default_factory=dict)
+    # Predicted peaks of every scored spectrum (only with run_glacier(collect_spectra=True)):
+    # adduct, candidate_spec_id, mz, intensity (";"-separated, as used for scoring).
+    spectra: pd.DataFrame | None = None
 
 
-def _score_group(calculator, query_set, query_rows, query_dataset, query_positions, library, formula):
+def _peak_rows(library, candidates, dataset, seen):
+    """Peaks of the candidate spectra as compact text, once per library spectrum."""
+    offsets, all_mz, all_intensity = dataset.offsets, dataset.mz, dataset.intensity
+    rows = []
+    for k, position in enumerate(candidates):
+        spec_id = library.spec_id[position]
+        if (library.adduct, spec_id) in seen:
+            continue
+        seen.add((library.adduct, spec_id))
+        mz = all_mz[offsets[k]:offsets[k + 1]]
+        intensity = all_intensity[offsets[k]:offsets[k + 1]]
+        rows.append((library.adduct, spec_id, ";".join(f"{v:.5f}" for v in mz),
+                     ";".join(f"{v:.4g}" for v in intensity)))
+    return rows
+
+
+def _score_group(calculator, query_set, query_rows, query_dataset, query_positions, library, formula,
+                 spectra_rows=None, seen=None):
     """Raw rows for one formula group (all of its queries x all candidate spectra)."""
     candidates = library.candidates(formula)
     if not len(candidates):
@@ -63,6 +83,8 @@ def _score_group(calculator, query_set, query_rows, query_dataset, query_positio
     subset = query_dataset.select(query_positions)
     peaks = [query_set.peaks[r] for r in query_rows]
     candidate_spectra, n_peaks_predicted = library.spectra(candidates)
+    if spectra_rows is not None:
+        spectra_rows.extend(_peak_rows(library, candidates, candidate_spectra, seen))
     scores = calculator.score(subset, peaks, candidate_spectra)
     n_q, n_c = len(query_rows), len(candidates)
     qi = np.repeat(np.arange(n_q), n_c)
@@ -98,9 +120,15 @@ def _score_group(calculator, query_set, query_rows, query_dataset, query_positio
 
 
 def run_glacier(input_msp: str | Path, config: GlacierConfig, *, formula_table: str | Path | None = None,
-                adducts: list[str] | None = None, limit: int | None = None) -> GlacierResult:
-    """Score the measured spectra of an MSP against the GLACIER libraries of their adducts."""
+                adducts: list[str] | None = None, limit: int | None = None,
+                collect_spectra: bool = False) -> GlacierResult:
+    """Score the measured spectra of an MSP against the GLACIER libraries of their adducts.
+
+    collect_spectra keeps the predicted peaks of every scored spectrum in
+    GlacierResult.spectra (used for mirror plots).
+    """
     started = time.time()
+    spectra_rows, seen = ([], set()) if collect_spectra else (None, None)
     resolver = AdductResolver(config.libraries, config.adduct_aliases)
     query_set = q.read_queries(input_msp, config, resolver, formula_table)
     table = query_set.table
@@ -146,7 +174,7 @@ def run_glacier(input_msp: str | Path, config: GlacierConfig, *, formula_table: 
                                             disable=None):
                 block, no_candidate_rows = _score_group(
                     calculator, query_set, query_rows, query_dataset, [position[r] for r in query_rows],
-                    library, formula)
+                    library, formula, spectra_rows, seen)
                 if block is not None:
                     blocks.append(block)
                 if no_candidate_rows:
@@ -165,7 +193,9 @@ def run_glacier(input_msp: str | Path, config: GlacierConfig, *, formula_table: 
 
     _finish_query_status(table, raw, features)
     timings["total"] = round(time.time() - started, 1)
-    return GlacierResult(table, raw, features, libraries, config, timings)
+    spectra = (pd.DataFrame(spectra_rows, columns=["adduct", "candidate_spec_id", "mz", "intensity"])
+               if collect_spectra else None)
+    return GlacierResult(table, raw, features, libraries, config, timings, spectra)
 
 
 def _finish_query_status(table, raw, features):

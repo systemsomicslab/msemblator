@@ -1,0 +1,212 @@
+# Download sources for the runtime assets (programs, models, compound libraries).
+#
+# Used by the GUI (Settings > Tool setup > Downloads) and by
+#   python -m msemblator.downloads --list
+#   python -m msemblator.downloads --install sirius models_formula ...
+#
+# Edit this file to change where something comes from. {name} in a value is
+# replaced by the entry of the same name under "variables". To switch to a new
+# Zenodo version, change zenodo_record (and zenodo_file / zenodo_root if the
+# archive or its top folder was renamed); the GUI then offers the update.
+#
+# Fields of an asset:
+#   title        name shown in the GUI
+#   group        tools | models | libraries
+#   url          download address; empty = not published yet
+#   type         file         the URL is the file itself
+#                zip          a zip archive that is downloaded and extracted
+#                zip_members  only the entries under `members` are read from a
+#                             remote zip archive (HTTP range requests), so a
+#                             model update does not download the whole archive
+#   destination  file (type file) or folder (zip, zip_members), relative to the
+#                repository folder
+#   members      zip_members: an entry, or a folder ending in "/" for all entries under it
+#   strip        leading part of the entry names that is removed when extracting
+#   sha256       expected SHA-256 of the downloaded file (file, zip). Without it,
+#                Zenodo files are checked against the MD5 that Zenodo publishes.
+#                Entries read with zip_members are checked with their zip CRC-32.
+#   installed    file(s) whose presence means the asset is installed
+#   size_mb      approximate download size
+#   license, license_url, note   shown before the download; the user must agree
+
+variables:
+  zenodo_record: '23721007'
+  zenodo_file: 'msemblator_2026.10.28.zip'
+  zenodo_root: 'msemblator_nist26_model'
+  zenodo_url: 'https://zenodo.org/records/{zenodo_record}/files/{zenodo_file}?download=1'
+  zenodo_license: 'CC-BY 4.0 (Zenodo record {zenodo_record})'
+  sirius_version: '6.3.2'
+  msfinder_version: '3.61'
+  metfrag_version: '2.5.0'
+
+assets:
+  # --- programs (official releases) -------------------------------------------------
+  sirius:
+    title: 'SIRIUS {sirius_version}'
+    group: tools
+    url: 'https://github.com/sirius-ms/sirius/releases/download/v{sirius_version}/sirius-{sirius_version}-win-x64.zip'
+    type: zip
+    destination: 'external'
+    sha256: 'ada8618543c6a53b84373b016650858629dabca17b670d1db163fdbdd8741743'
+    installed: ['external/sirius/sirius.exe']
+    size_mb: 484
+    license: 'AGPL-3.0. The SIRIUS web services (CSI:FingerID, CANOPUS) need your own SIRIUS account; the free academic license covers non-profit research and teaching only, commercial use needs a Bright Giant subscription.'
+    license_url: 'https://boecker-lab.github.io/docs.sirius.github.io/account-and-license'
+
+  msfinder:
+    title: 'MS-FINDER {msfinder_version}'
+    group: tools
+    url: 'https://github.com/systemsomicslab/MsdialWorkbench/releases/download/MSFINDER-v{msfinder_version}/MSFINDER.ver.{msfinder_version}.zip'
+    type: zip
+    destination: 'external/msfinder'
+    installed: ['external/msfinder/MSFINDER ver {msfinder_version}/MsfinderConsoleApp.exe']
+    size_mb: 324
+    license: 'CC-BY 4.0 (program), LGPL-3.0 (source code).'
+    license_url: 'https://github.com/systemsomicslab/MsdialWorkbench'
+
+  metfrag:
+    title: 'MetFrag command line {metfrag_version}'
+    group: tools
+    url: 'https://github.com/ipb-halle/MetFragRelaunched/releases/download/v{metfrag_version}/MetFragCommandLine-{metfrag_version}.jar'
+    type: file
+    destination: 'external/metfrag/MetFragCommandLine-{metfrag_version}.jar'
+    installed: ['external/metfrag/MetFragCommandLine-{metfrag_version}.jar']
+    size_mb: 55
+    license: 'Published by IPB Halle; the repository has no separate license file. Needs Java 21.'
+    license_url: 'https://github.com/ipb-halle/MetFragRelaunched'
+    note: 'The jar used to validate MS-Emblator is another 2.5.0 build (60.6 MB, JDK 11.0.16); this release jar (54.5 MB, JDK 11.0.24) was rebuilt later and has not been validated. To install the validated jar, publish it (e.g. on Zenodo) and change url.'
+
+  # --- models (MS-Emblator Zenodo record) -------------------------------------------
+  models_formula:
+    title: 'Formula ranking models (SIRIUS, MS-FINDER, msbuddy)'
+    group: models
+    url: '{zenodo_url}'
+    type: zip_members
+    members: '{zenodo_root}/models/formula/'
+    strip: '{zenodo_root}/'
+    destination: '.'
+    installed: ['models/formula/xgbranker_final_all.pkl']
+    size_mb: 2
+    license: '{zenodo_license}'
+    license_url: 'https://zenodo.org/records/{zenodo_record}'
+
+  models_structure:
+    title: 'Structure ranking models (MS-FINDER, SIRIUS, MetFrag)'
+    group: models
+    url: '{zenodo_url}'
+    type: zip_members
+    members: '{zenodo_root}/models/structure/'
+    strip: '{zenodo_root}/'
+    destination: '.'
+    installed: ['models/structure/xgbranker_final_all.pkl']
+    size_mb: 19
+    license: '{zenodo_license}'
+    license_url: 'https://zenodo.org/records/{zenodo_record}'
+
+  models_formula_fiddle:
+    title: 'Formula models with FIDDLE (MS-FINDER, msbuddy, FIDDLE)'
+    group: models
+    url: ''          # not published yet
+    type: zip_members
+    members: '{zenodo_root}/models/formula/'
+    strip: '{zenodo_root}/'
+    destination: '.'
+    installed: ['models/formula/pipeline_fiddle_score.pkl', 'models/formula/msfinder_msbuddy_fiddle/xgbranker_final_all.pkl']
+    license: '{zenodo_license}'
+
+  models_structure_glacier:
+    title: 'Structure models with GLACIER (MS-FINDER, GLACIER, MetFrag)'
+    group: models
+    url: ''          # not published yet
+    type: zip_members
+    members: '{zenodo_root}/models/structure/msfinder_glacier_metfrag/'
+    strip: '{zenodo_root}/'
+    destination: '.'
+    installed: ['models/structure/msfinder_glacier_metfrag/xgbranker_final_all.pkl']
+    license: '{zenodo_license}'
+
+  # --- compound libraries (MS-Emblator Zenodo record) -------------------------------
+  library_msfinder:
+    title: 'MS-FINDER structure database'
+    group: libraries
+    url: '{zenodo_url}'
+    type: zip_members
+    members: '{zenodo_root}/library/MsfinderStructureDB_all.txt'
+    strip: '{zenodo_root}/'
+    destination: '.'
+    installed: ['library/MsfinderStructureDB_all.txt']
+    size_mb: 35
+    license: '{zenodo_license}. Built from public compound databases; check their terms for commercial use (e.g. HMDB).'
+    license_url: 'https://zenodo.org/records/{zenodo_record}'
+
+  library_metfrag:
+    title: 'MetFrag structure database'
+    group: libraries
+    url: '{zenodo_url}'
+    type: zip_members
+    members: '{zenodo_root}/library/metfrag_StructureDB.txt'
+    strip: '{zenodo_root}/'
+    destination: '.'
+    installed: ['library/metfrag_StructureDB.txt']
+    size_mb: 48
+    license: '{zenodo_license}. Built from public compound databases; check their terms for commercial use.'
+    license_url: 'https://zenodo.org/records/{zenodo_record}'
+
+  library_sirius:
+    title: 'SIRIUS structure database (large)'
+    group: libraries
+    url: '{zenodo_url}'
+    type: zip_members
+    members: '{zenodo_root}/library/sirius_structure_db.siriusdb'
+    strip: '{zenodo_root}/'
+    destination: '.'
+    installed: ['library/sirius_structure_db.siriusdb']
+    size_mb: 2230
+    license: '{zenodo_license}. Built from public compound databases; check their terms for commercial use.'
+    license_url: 'https://zenodo.org/records/{zenodo_record}'
+
+  # --- GLACIER predicted spectral libraries (one file per adduct) -------------------
+  glacier_m_minus_h:
+    title: 'GLACIER library [M-H]-'
+    group: libraries
+    url: ''          # not published yet
+    type: file
+    destination: 'external/glacier/M_minus_H_predictions.msds'
+    installed: ['external/glacier/M_minus_H_predictions.msds']
+    size_mb: 1280
+  glacier_m_plus_h:
+    title: 'GLACIER library [M+H]+'
+    group: libraries
+    url: ''          # not published yet
+    type: file
+    destination: 'external/glacier/M_plus_H_predictions.msds'
+    installed: ['external/glacier/M_plus_H_predictions.msds']
+    size_mb: 1320
+  glacier_m_plus_na:
+    title: 'GLACIER library [M+Na]+'
+    group: libraries
+    url: ''
+    type: file
+    destination: 'external/glacier/M_plus_Na_predictions.msds'
+    installed: ['external/glacier/M_plus_Na_predictions.msds']
+  glacier_m_plus_nh4:
+    title: 'GLACIER library [M+NH4]+'
+    group: libraries
+    url: ''
+    type: file
+    destination: 'external/glacier/M_plus_NH4_predictions.msds'
+    installed: ['external/glacier/M_plus_NH4_predictions.msds']
+  glacier_m_minus_h2o_minus_h:
+    title: 'GLACIER library [M-H2O-H]-'
+    group: libraries
+    url: ''
+    type: file
+    destination: 'external/glacier/M_minus_H2O_minus_H_predictions.msds'
+    installed: ['external/glacier/M_minus_H2O_minus_H_predictions.msds']
+  glacier_m_minus_h2o_plus_h:
+    title: 'GLACIER library [M-H2O+H]+'
+    group: libraries
+    url: ''
+    type: file
+    destination: 'external/glacier/M_minus_H2O_plus_H_predictions.msds'
+    installed: ['external/glacier/M_minus_H2O_plus_H_predictions.msds']

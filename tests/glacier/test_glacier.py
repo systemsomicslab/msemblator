@@ -22,11 +22,6 @@ try:
 except ImportError:  # pragma: no cover - environment without the GLACIER packages
     ms = None
 
-try:
-    import ms_entropy  # noqa: F401
-    HAVE_ENTROPY = True
-except ImportError:  # pragma: no cover
-    HAVE_ENTROPY = False
 
 from msemblator.glacier import labels  # noqa: E402
 from msemblator.glacier.adducts import AdductResolver, parse_adduct  # noqa: E402
@@ -447,12 +442,45 @@ class SimilarityDirectionTest(unittest.TestCase):
         one_to_one = self.scores([[100.0, 1.0], [100.001, 1.0]], [[100.0012, 1.0]])
         self.assertAlmostEqual(one_to_one["cosine"][0], 1 / math.sqrt(2), places=5)
 
-    @unittest.skipUnless(HAVE_ENTROPY, "ms_entropy is not installed")
+    @staticmethod
+    def reference_entropy(measured, predicted, weighted):
+        """Li et al. (2021) on spectra whose peaks are far apart (so the pairing is unambiguous)."""
+        def probabilities(peaks):
+            p = {mz: i for mz, i in peaks}
+            total = sum(p.values())
+            p = {mz: i / total for mz, i in p.items()}
+            h = -sum(v * math.log(v) for v in p.values())
+            if weighted and h < 3:
+                p = {mz: v ** (0.25 + 0.25 * h) for mz, v in p.items()}
+                total = sum(p.values())
+                p = {mz: v / total for mz, v in p.items()}
+            return p
+
+        def f(x):
+            return x * math.log2(x) if x > 0 else 0.0
+
+        a, b = probabilities(measured), probabilities(predicted)
+        return sum((f(a[mz] + b[mz]) - f(a[mz]) - f(b[mz])) / 2 for mz in a if mz in b)
+
     def test_entropy_similarity(self):
+        measured = [[100.0, 9.0], [150.0, 1.0], [210.0, 3.0]]
+        predicted = [[100.0, 1.0], [210.0, 2.0], [300.0, 4.0]]
+        scores = self.scores(measured, predicted, methods=("entropy", "unweighted_entropy"))
+        self.assertAlmostEqual(scores["entropy"][0], self.reference_entropy(measured, predicted, True), places=5)
+        self.assertAlmostEqual(scores["unweighted_entropy"][0],
+                               self.reference_entropy(measured, predicted, False), places=5)
         same = self.scores([[100.0, 1.0], [150.0, 2.0]], [[100.0, 1.0], [150.0, 2.0]], methods=("entropy",))
         disjoint = self.scores([[100.0, 1.0]], [[200.0, 1.0]], methods=("entropy",))
         self.assertAlmostEqual(same["entropy"][0], 1.0, places=5)
         self.assertEqual(disjoint["entropy"][0], 0.0)
+
+    def test_old_entropy_options_are_ignored(self):
+        settings = {"library_dir": ".", "libraries": {"[M-H]-": "x.msds"}, "similarities": ["entropy"],
+                    "entropy": {"clean_spectra": True, "noise_threshold": 0.01}}
+        with self.assertLogs("msemblator.glacier.config", level="WARNING"):
+            config = config_from_dict(settings)
+        self.assertEqual(config.similarities, ("entropy",))
+        self.assertEqual(config.method_label("unweighted_entropy"), "UnweightedEntropy")
 
 
 if __name__ == "__main__":
